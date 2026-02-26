@@ -1,0 +1,274 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ── DARK THEME (default) ───────────────────────────────────────
+     Background: #000000 pure black  |  Text: white #FFFFFF
+  ──────────────────────────────────────────────────────────────── */
+  :root,
+  [data-theme="dark"] {
+    --bg-base:     #000000;
+    --bg-panel:    #0D0D0D;
+    --bg-card:     #111111;
+    --bg-hover:    #1A1A1A;
+
+    --text-primary:   #FFFFFF;
+    --text-secondary: #A0A8B4;
+    --text-tertiary:  #606878;
+    --text-disabled:  #404850;
+
+    --border-default: #222222;
+    --border-hover:   #333333;
+    --border-focus:   #00D4AA;
+
+    --accent: #00D4AA;
+
+    /* Sidebar — slightly lifted from pure black so it reads as a panel */
+    --sidebar-bg:     #0A0A0A;
+    --sidebar-border: #1E1E1E;
+
+    --scrollbar-track: #000000;
+    --scrollbar-thumb: #222222;
+    --scrollbar-thumb-hover: #333333;
+
+    --shimmer-from: #111111;
+    --shimmer-mid:  #1A1A1A;
+  }
+
+  /* ── LIGHT THEME ────────────────────────────────────────────────
+     Sidebar bg: #FFFFFF  |  Page bg: #F4F7FA  |  Text: dark on page, white in sidebar
+  ──────────────────────────────────────────────────────────────── */
+  [data-theme="light"] {
+    --bg-base:     #F4F7FA;
+    --bg-panel:    #FFFFFF;
+    --bg-card:     #FFFFFF;
+    --bg-hover:    #EEF2F7;
+
+    --text-primary:   #1A2333;
+    --text-secondary: #445268;
+    --text-tertiary:  #6B7A8D;
+    --text-disabled:  #9BAAB8;
+
+    --border-default: #E2E8F0;
+    --border-hover:   #C9D4E0;
+    --border-focus:   #009E7F;
+
+    --accent: #009E7F;
+
+    /* Sidebar specific — pure white */
+    --sidebar-bg:     #FFFFFF;
+    --sidebar-border: #E2E8F0;
+
+    --scrollbar-track: #F4F7FA;
+    --scrollbar-thumb: #C9D4E0;
+    --scrollbar-thumb-hover: #9BAAB8;
+
+    --shimmer-from: #E2E8F0;
+    --shimmer-mid:  #EEF2F7;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: Inter, system-ui, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+  /* Selection */
+  ::selection {
+    background: rgba(0, 212, 170, 0.2);
+    color: var(--text-primary);
+  }
+}
+
+@layer components {
+  .num { @apply font-mono tabular-nums; }
+
+  .pnl-positive { @apply text-success font-mono tabular-nums; }
+  .pnl-negative { @apply text-danger font-mono tabular-nums; }
+
+  /* Skeleton — theme-aware via CSS vars */
+  .skeleton {
+    @apply rounded animate-shimmer;
+    background: linear-gradient(
+      90deg,
+      var(--shimmer-from) 25%,
+      var(--shimmer-mid) 50%,
+      var(--shimmer-from) 75%
+    );
+    background-size: 200% 100%;
+  }
+
+  /* Data table */
+  .data-table th {
+    @apply text-2xs font-medium uppercase tracking-wider text-left px-3 py-2 sticky top-0;
+    color: var(--text-tertiary);
+    background: var(--bg-panel);
+  }
+  .data-table td {
+    @apply text-sm px-3 py-2;
+    border-bottom: 1px solid var(--border-default);
+    color: var(--text-primary);
+  }
+  .data-table tr:hover td {
+    background: var(--bg-hover);
+  }
+
+  /* Card */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-default);
+    @apply rounded-md shadow-card;
+    transition: background-color 200ms ease, border-color 200ms ease;
+  }
+
+  .metric-value { @apply text-2xl font-mono tabular-nums font-semibold; color: var(--text-primary); }
+
+  /* Badge */
+  .badge { @apply inline-flex items-center px-2 py-0.5 rounded text-2xs font-medium; height: 20px; }
+
+  /* Input */
+  .input-field {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
+    @apply rounded focus:outline-none;
+    height: 36px;
+    transition: border-color 120ms ease, background-color 200ms ease;
+  }
+  .input-field:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.15);
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background: var(--accent);
+    color: #FFFFFF;
+    @apply font-semibold rounded px-4 text-sm flex items-center gap-2;
+    height: 36px;
+    transition: filter 120ms ease;
+  }
+  .btn-primary:hover { filter: brightness(1.1); }
+
+  .btn-secondary {
+    border: 1px solid var(--border-hover);
+    color: var(--text-secondary);
+    @apply rounded px-4 text-sm flex items-center gap-2;
+    height: 36px;
+    background: transparent;
+    transition: all 120ms ease;
+  }
+  .btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── Sidebar nav items ──────────────────────────────────────── */
+  /* Sidebar always uses its own bg vars so text must be readable on both themes */
+  .nav-item-active {
+    background: rgba(0, 212, 170, 0.12);
+    color: var(--accent);
+    border-left: 2px solid var(--accent);
+  }
+  .nav-item {
+    color: rgba(255,255,255,0.55);
+    border-left: 2px solid transparent;
+    transition: all 120ms ease;
+  }
+  .nav-item:hover {
+    color: #FFFFFF;
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* Light theme overrides for sidebar nav — sidebar is white so use dark text */
+  [data-theme="light"] .nav-item {
+    color: rgba(0,0,0,0.45);
+  }
+  [data-theme="light"] .nav-item:hover {
+    color: #1A2333;
+    background: rgba(0,0,0,0.05);
+  }
+  [data-theme="light"] .nav-item-active {
+    background: rgba(0, 158, 127, 0.10);
+    color: #009E7F;
+    border-left: 2px solid #009E7F;
+  }
+
+  /* Page header */
+  .page-header {
+    @apply flex items-center justify-between pb-6;
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  .section-title { @apply text-sm font-medium uppercase tracking-wider; color: var(--text-secondary); }
+
+  .tooltip {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    @apply text-2xs rounded px-2 py-1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    max-width: 240px;
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .tabular { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+  .tr { text-align: right; }
+  .transition-fast { transition-duration: 120ms; }
+}
+
+  .input-field {
+    @apply w-full h-9 bg-bg-panel border border-border-default rounded px-3 text-sm text-text-primary
+           focus:border-accent outline-none transition-fast;
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    border-color: var(--border-default);
+  }
+
+  .input-field:focus {
+    border-color: var(--accent);
+  }
+
+  select.input-field option {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+  }
+
+  .input-field {
+    @apply w-full h-9 bg-bg-panel border border-border-default rounded px-3 text-sm text-text-primary
+           focus:border-accent outline-none transition-fast;
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    border-color: var(--border-default);
+  }
+
+  .input-field:focus {
+    border-color: var(--accent);
+  }
+
+  select.input-field option {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+  }

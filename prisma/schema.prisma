@@ -1,0 +1,527 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  SUPERADMIN
+  ADMIN
+  TRADER
+  ANALYST
+  VIEWER
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum CounterpartyType {
+  PRODUCER
+  MARKETER
+  UTILITY
+  INDUSTRIAL
+  FINANCIAL
+  GENERATOR
+  RETAIL_PROVIDER
+  OTHER
+}
+
+enum CounterpartyStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_REVIEW
+}
+
+enum CreditRating {
+  AAA
+  AA_PLUS
+  AA
+  AA_MINUS
+  A_PLUS
+  A
+  A_MINUS
+  BBB_PLUS
+  BBB
+  BBB_MINUS
+  BB_PLUS
+  BB
+  BB_MINUS
+  B_PLUS
+  B
+  B_MINUS
+  CCC
+  CC
+  C
+  D
+  UNRATED
+}
+
+enum DealDirection {
+  BUY
+  SELL
+}
+
+enum Commodity {
+  NATURAL_GAS
+  CRUDE_OIL_WTI
+  CRUDE_OIL_BRENT
+  POWER
+  NGLS
+  REFINED_PRODUCTS
+  CARBON_CREDITS
+  RENEWABLE_ENERGY_CREDITS
+  OTHER
+}
+
+enum ProductType {
+  PHYSICAL
+  FINANCIAL_SWAP
+  FINANCIAL_OPTION
+  BASIS_SWAP
+  HEAT_RATE
+  PPA
+  TOLLING
+  OTHER
+}
+
+enum VolumeUnit {
+  MMBTU
+  MWH
+  BBL
+  GAL
+  MT
+  CONTRACTS
+}
+
+enum PriceType {
+  FIXED
+  INDEX_PLUS
+  INDEX_MINUS
+  PERCENTAGE_OF_INDEX
+  COLLAR
+  PARTICIPATING
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+}
+
+enum DealStage {
+  ORIGINATION
+  INDICATIVE
+  FIRM_BID
+  CREDIT_REVIEW
+  LEGAL_REVIEW
+  EXECUTED
+  DELIVERING
+  SETTLED
+  DEAD
+}
+
+enum DealSource {
+  DIRECT
+  BROKER
+  ICE
+  CME
+  PLATFORM
+  REFERRAL
+}
+
+enum ContractType {
+  ISDA_MASTER
+  NAESB
+  PPA
+  CUSTOM
+  AMENDMENT
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum DocumentType {
+  TERM_SHEET
+  CONFIRMATION
+  ISDA_SCHEDULE
+  CREDIT_APPLICATION
+  REGULATORY_FILING
+  OTHER
+}
+
+enum ActivityType {
+  NOTE
+  CALL
+  EMAIL
+  MEETING
+  STAGE_CHANGE
+  DOCUMENT_UPLOAD
+  PRICE_UPDATE
+  SYSTEM
+}
+
+enum PriceSource {
+  EIA
+  ERCOT
+  CME_DELAYED
+  ICE_DELAYED
+  MANUAL
+}
+
+enum AlertType {
+  CONTRACT_EXPIRING
+  CREDIT_LIMIT_BREACH
+  DEAL_STALE
+  PRICE_MOVE
+  CUSTOM
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model Organization {
+  id               String           @id @default(cuid())
+  name             String
+  logoUrl          String?
+  timezone         String           @default("America/Chicago")
+  defaultCurrency  Currency         @default(USD)
+  subscriptionTier SubscriptionTier @default(FREE)
+  stripeCustomerId String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  users          User[]
+  counterparties Counterparty[]
+  deals          Deal[]
+  contracts      Contract[]
+  activities     Activity[]
+  alerts         Alert[]
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String
+  avatarUrl      String?
+  role           UserRole  @default(TRADER)
+  organizationId String
+  passwordHash   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deals        Deal[]          @relation("AssignedDeals")
+  activities   Activity[]
+  documents    DealDocument[]
+  alerts       Alert[]
+  accounts     Account[]
+  sessions     Session[]
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Counterparty {
+  id             String             @id @default(cuid())
+  organizationId String
+  name           String
+  shortName      String             @db.VarChar(6)
+  type           CounterpartyType
+  creditRating   CreditRating       @default(UNRATED)
+  creditLimit    Decimal            @db.Decimal(18, 2) @default(0)
+  currentExposure Decimal           @db.Decimal(18, 2) @default(0)
+
+  isdaMasterAgreement Boolean  @default(false)
+  isdaDate            DateTime?
+  naesb               Boolean  @default(false)
+  naesbDate           DateTime?
+
+  primaryContactName  String?
+  primaryContactEmail String?
+  primaryContactPhone String?
+
+  address String?
+  city    String?
+  state   String?
+  country String?  @default("USA")
+
+  notes  String?  @db.Text
+  tags   String[]
+  status CounterpartyStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deals        Deal[]
+  contracts    Contract[]
+  contacts     CounterpartyContact[]
+  activities   Activity[]
+  alerts       Alert[]
+
+  @@index([organizationId, name])
+  @@index([organizationId, type])
+  @@index([organizationId, status])
+}
+
+model CounterpartyContact {
+  id             String @id @default(cuid())
+  counterpartyId String
+  name           String
+  title          String?
+  email          String?
+  phone          String?
+  isPrimary      Boolean @default(false)
+  notes          String? @db.Text
+
+  counterparty Counterparty @relation(fields: [counterpartyId], references: [id], onDelete: Cascade)
+
+  @@index([counterpartyId])
+}
+
+model Deal {
+  id             String  @id @default(cuid())
+  organizationId String
+  counterpartyId String
+  assignedUserId String
+  dealNumber     String  @unique
+
+  direction  DealDirection
+  commodity  Commodity
+  deliveryPoint String
+  product    ProductType
+
+  startDate DateTime
+  endDate   DateTime
+
+  volume     Decimal    @db.Decimal(18, 4)
+  volumeUnit VolumeUnit
+
+  priceType       PriceType
+  fixedPrice      Decimal?  @db.Decimal(18, 6)
+  indexName       String?
+  indexAdjustment Decimal?  @db.Decimal(18, 6)
+  currency        Currency  @default(USD)
+
+  totalNotionalValue  Decimal  @db.Decimal(18, 2) @default(0)
+  currentMarketPrice  Decimal? @db.Decimal(18, 6)
+  unrealizedPnl       Decimal  @db.Decimal(18, 2) @default(0)
+
+  stage       DealStage @default(ORIGINATION)
+  probability Int       @default(10)
+  weightedValue Decimal @db.Decimal(18, 2) @default(0)
+
+  source     DealSource @default(DIRECT)
+  brokerName String?
+  brokerFee  Decimal?   @db.Decimal(18, 2)
+
+  internalNotes String? @db.Text
+  externalNotes String? @db.Text
+  tags          String[]
+
+  closedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  counterparty   Counterparty   @relation(fields: [counterpartyId], references: [id])
+  assignedUser   User           @relation("AssignedDeals", fields: [assignedUserId], references: [id])
+  documents      DealDocument[]
+  activities     Activity[]
+  milestones     DealMilestone[]
+  contracts      Contract[]
+  alerts         Alert[]
+
+  @@index([organizationId, stage])
+  @@index([organizationId, counterpartyId])
+  @@index([organizationId, commodity])
+  @@index([createdAt])
+  @@index([dealNumber])
+}
+
+model DealMilestone {
+  id              String    @id @default(cuid())
+  dealId          String
+  stage           DealStage
+  enteredAt       DateTime  @default(now())
+  exitedAt        DateTime?
+  durationMinutes Int?
+
+  deal Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([dealId])
+}
+
+model DealDocument {
+  id           String       @id @default(cuid())
+  dealId       String
+  name         String
+  type         DocumentType
+  fileUrl      String
+  fileSize     Int?
+  uploadedById String
+  createdAt    DateTime     @default(now())
+
+  deal       Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+
+  @@index([dealId])
+}
+
+model Contract {
+  id             String         @id @default(cuid())
+  organizationId String
+  counterpartyId String
+  dealId         String?
+  contractNumber String         @unique
+
+  type            ContractType
+  status          ContractStatus @default(DRAFT)
+  effectiveDate   DateTime
+  expirationDate  DateTime?
+  autoRenew       Boolean        @default(false)
+  noticePeriodDays Int           @default(30)
+  fileUrl         String?
+  keyTerms        Json?
+  alertDaysBefore Int            @default(30)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  counterparty Counterparty  @relation(fields: [counterpartyId], references: [id])
+  deal         Deal?         @relation(fields: [dealId], references: [id])
+  alerts       Alert[]
+
+  @@index([organizationId, counterpartyId])
+  @@index([organizationId, status])
+  @@index([expirationDate])
+}
+
+model Activity {
+  id             String       @id @default(cuid())
+  organizationId String
+  dealId         String?
+  counterpartyId String?
+  userId         String
+
+  type        ActivityType
+  title       String
+  description String?      @db.Text
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deal         Deal?         @relation(fields: [dealId], references: [id])
+  counterparty Counterparty? @relation(fields: [counterpartyId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+
+  @@index([dealId, createdAt])
+  @@index([counterpartyId, createdAt])
+  @@index([organizationId, createdAt])
+}
+
+model MarketPrice {
+  id            String      @id @default(cuid())
+  commodity     Commodity
+  deliveryPoint String
+  indexName     String
+
+  date             DateTime
+  settlementPrice  Decimal  @db.Decimal(18, 6)
+  changeAbsolute   Decimal  @db.Decimal(18, 6) @default(0)
+  changePercent    Decimal  @db.Decimal(8, 4)  @default(0)
+  source           PriceSource @default(MANUAL)
+
+  createdAt DateTime @default(now())
+
+  @@unique([commodity, deliveryPoint, date])
+  @@index([commodity, deliveryPoint])
+  @@index([date])
+}
+
+model Alert {
+  id             String        @id @default(cuid())
+  organizationId String
+  userId         String
+  type           AlertType
+  title          String
+  message        String        @db.Text
+  severity       AlertSeverity @default(INFO)
+
+  relatedDealId         String?
+  relatedCounterpartyId String?
+  relatedContractId     String?
+
+  isRead  Boolean   @default(false)
+  readAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  organization         Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                 User          @relation(fields: [userId], references: [id])
+  relatedDeal          Deal?         @relation(fields: [relatedDealId], references: [id])
+  relatedCounterparty  Counterparty? @relation(fields: [relatedCounterpartyId], references: [id])
+  relatedContract      Contract?     @relation(fields: [relatedContractId], references: [id])
+
+  @@index([organizationId, userId, isRead])
+  @@index([organizationId, createdAt])
+}
