@@ -6,7 +6,7 @@ import { useRouter, useSearchParams }     from "next/navigation";
 import Link                               from "next/link";
 import { Loader2, Eye, EyeOff, Sun, Moon, Zap } from "lucide-react";
 import { useAppStore }                    from "@/store/app-store";
-import { DehydLogo }                      from "@/components/ui/DehydLogo";
+import { DealerseedLogo } from "@/components/ui/DealerseedLogo";
 
 export default function LoginPage() {
   const router       = useRouter();
@@ -126,7 +126,7 @@ export default function LoginPage() {
 
         {/* ── Logo ── */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: "2rem", gap: "0.5rem" }}>
-          <DehydLogo
+          <DealerseedLogo
             variant="full"
             color={accent}
             height={36}

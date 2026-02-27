@@ -104,7 +104,7 @@ function CheckoutContent() {
           <div className="rounded-lg bg-bg-panel border border-border-default p-4 mb-6">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <span className="text-sm font-semibold text-text-primary">DEHY {plan.name}</span>
+                <span className="text-sm font-semibold text-text-primary">Dealerseed {plan.name}</span>
                 <p className="text-xs text-text-tertiary mt-0.5">Billed monthly · Cancel anytime</p>
               </div>
               <span className="text-lg font-bold text-accent font-mono">{plan.price}</span>
@@ -140,7 +140,7 @@ function CheckoutContent() {
             <ShieldCheck className="w-4 h-4 text-success shrink-0 mt-0.5" />
             <p className="text-[11px] text-text-secondary leading-relaxed">
               You&apos;ll be redirected to <strong className="text-text-primary">Stripe</strong> to enter
-              your payment details securely. DEHY never stores your card information.
+              your payment details securely. Dealerseed never stores your card information.
             </p>
           </div>
 
@@ -169,7 +169,7 @@ function CheckoutContent() {
 
         <p className="text-center text-[11px] text-text-disabled mt-4">
           Questions?{" "}
-          <a href="mailto:billing@dehy.io" className="text-accent hover:underline">billing@dehy.io</a>
+          <a href="mailto:billing@lotpilot.io" className="text-accent hover:underline">billing@lotpilot.io</a>
         </p>
       </div>
     </div>

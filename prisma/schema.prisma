@@ -12,8 +12,9 @@ datasource db {
 enum UserRole {
   SUPERADMIN
   ADMIN
-  TRADER
-  ANALYST
+  MANAGER
+  SALESPERSON
+  FINANCE
   VIEWER
 }
 
@@ -23,143 +24,93 @@ enum SubscriptionTier {
   ENTERPRISE
 }
 
-enum CounterpartyType {
-  PRODUCER
-  MARKETER
-  UTILITY
-  INDUSTRIAL
-  FINANCIAL
-  GENERATOR
-  RETAIL_PROVIDER
+enum VehicleStatus {
+  AVAILABLE
+  RESERVED
+  IN_NEGOTIATION
+  SOLD
+  PENDING_DELIVERY
+  DELIVERED
+  WHOLESALE
+  TRADED_IN
+}
+
+enum VehicleCondition {
+  NEW
+  USED_EXCELLENT
+  USED_GOOD
+  USED_FAIR
+  CERTIFIED_PRE_OWNED
+}
+
+enum FuelType {
+  GASOLINE
+  DIESEL
+  HYBRID
+  PLUG_IN_HYBRID
+  ELECTRIC
   OTHER
 }
 
-enum CounterpartyStatus {
-  ACTIVE
-  INACTIVE
-  SUSPENDED
-  PENDING_REVIEW
+enum TransmissionType {
+  AUTOMATIC
+  MANUAL
+  CVT
+  DUAL_CLUTCH
 }
 
-enum CreditRating {
-  AAA
-  AA_PLUS
-  AA
-  AA_MINUS
-  A_PLUS
-  A
-  A_MINUS
-  BBB_PLUS
-  BBB
-  BBB_MINUS
-  BB_PLUS
-  BB
-  BB_MINUS
-  B_PLUS
-  B
-  B_MINUS
-  CCC
-  CC
-  C
-  D
-  UNRATED
+enum DriveTrain {
+  FWD
+  RWD
+  AWD
+  FOUR_WD
 }
 
-enum DealDirection {
-  BUY
-  SELL
+enum SaleDealStage {
+  NEW_LEAD
+  CONTACTED
+  TEST_DRIVE_SCHEDULED
+  TEST_DRIVE_DONE
+  OFFER_MADE
+  FINANCE_AND_INSURANCE
+  CONTRACTED
+  PENDING_DELIVERY
+  DELIVERED
+  LOST
 }
 
-enum Commodity {
-  NATURAL_GAS
-  CRUDE_OIL_WTI
-  CRUDE_OIL_BRENT
-  POWER
-  NGLS
-  REFINED_PRODUCTS
-  CARBON_CREDITS
-  RENEWABLE_ENERGY_CREDITS
-  OTHER
-}
-
-enum ProductType {
-  PHYSICAL
-  FINANCIAL_SWAP
-  FINANCIAL_OPTION
-  BASIS_SWAP
-  HEAT_RATE
-  PPA
-  TOLLING
-  OTHER
-}
-
-enum VolumeUnit {
-  MMBTU
-  MWH
-  BBL
-  GAL
-  MT
-  CONTRACTS
-}
-
-enum PriceType {
-  FIXED
-  INDEX_PLUS
-  INDEX_MINUS
-  PERCENTAGE_OF_INDEX
-  COLLAR
-  PARTICIPATING
-}
-
-enum Currency {
-  USD
-  EUR
-  GBP
-}
-
-enum DealStage {
-  ORIGINATION
-  INDICATIVE
-  FIRM_BID
-  CREDIT_REVIEW
-  LEGAL_REVIEW
-  EXECUTED
-  DELIVERING
-  SETTLED
-  DEAD
-}
-
-enum DealSource {
-  DIRECT
-  BROKER
-  ICE
-  CME
-  PLATFORM
+enum LeadSource {
+  WALK_IN
+  WEBSITE
+  PHONE
   REFERRAL
+  CARGURUS
+  AUTOTRADER
+  FACEBOOK
+  CRAIGSLIST
+  OTHER
 }
 
-enum ContractType {
-  ISDA_MASTER
-  NAESB
-  PPA
-  CUSTOM
-  AMENDMENT
+enum FinanceType {
+  CASH
+  DEALER_FINANCE
+  BANK_FINANCE
+  CREDIT_UNION
+  LEASE
+}
+
+enum TradeInCondition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
 }
 
 enum ContractStatus {
   DRAFT
-  ACTIVE
-  EXPIRED
-  TERMINATED
-}
-
-enum DocumentType {
-  TERM_SHEET
-  CONFIRMATION
-  ISDA_SCHEDULE
-  CREDIT_APPLICATION
-  REGULATORY_FILING
-  OTHER
+  SIGNED
+  FUNDED
+  CANCELLED
 }
 
 enum ActivityType {
@@ -167,25 +118,18 @@ enum ActivityType {
   CALL
   EMAIL
   MEETING
+  TEST_DRIVE
+  OFFER
   STAGE_CHANGE
   DOCUMENT_UPLOAD
-  PRICE_UPDATE
   SYSTEM
 }
 
-enum PriceSource {
-  EIA
-  ERCOT
-  CME_DELAYED
-  ICE_DELAYED
-  MANUAL
-}
-
 enum AlertType {
-  CONTRACT_EXPIRING
-  CREDIT_LIMIT_BREACH
   DEAL_STALE
-  PRICE_MOVE
+  VEHICLE_AGING
+  FOLLOW_UP_DUE
+  FINANCE_EXPIRING
   CUSTOM
 }
 
@@ -193,6 +137,12 @@ enum AlertSeverity {
   INFO
   WARNING
   CRITICAL
+}
+
+enum Currency {
+  USD
+  CAD
+  EUR
 }
 
 // ─── Models ───────────────────────────────────────────────────────────────────
@@ -205,32 +155,43 @@ model Organization {
   defaultCurrency  Currency         @default(USD)
   subscriptionTier SubscriptionTier @default(FREE)
   stripeCustomerId String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
 
-  users          User[]
-  counterparties Counterparty[]
-  deals          Deal[]
-  contracts      Contract[]
-  activities     Activity[]
-  alerts         Alert[]
+  // Dealership-specific
+  dealerLicenseNumber String?
+  dealerAddress       String?
+  dealerCity          String?
+  dealerState         String?
+  dealerZip           String?
+  dealerPhone         String?
+  dealerWebsite       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users      User[]
+  vehicles   Vehicle[]
+  customers  Customer[]
+  salesDeals SalesDeal[]
+  contracts  PurchaseContract[]
+  activities Activity[]
+  alerts     Alert[]
 }
 
 model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
+  id             String   @id @default(cuid())
+  email          String   @unique
   name           String
   avatarUrl      String?
-  role           UserRole  @default(TRADER)
+  title          String?
+  role           UserRole @default(SALESPERSON)
   organizationId String
   passwordHash   String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  deals        Deal[]          @relation("AssignedDeals")
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  salesDeals   SalesDeal[]  @relation("AssignedDeals")
   activities   Activity[]
-  documents    DealDocument[]
   alerts       Alert[]
   accounts     Account[]
   sessions     Session[]
@@ -278,188 +239,267 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model Counterparty {
-  id             String             @id @default(cuid())
-  organizationId String
-  name           String
-  shortName      String             @db.VarChar(6)
-  type           CounterpartyType
-  creditRating   CreditRating       @default(UNRATED)
-  creditLimit    Decimal            @db.Decimal(18, 2) @default(0)
-  currentExposure Decimal           @db.Decimal(18, 2) @default(0)
+// ─── Core Dealership Models ───────────────────────────────────────────────────
 
-  isdaMasterAgreement Boolean  @default(false)
-  isdaDate            DateTime?
-  naesb               Boolean  @default(false)
-  naesbDate           DateTime?
-
-  primaryContactName  String?
-  primaryContactEmail String?
-  primaryContactPhone String?
-
-  address String?
-  city    String?
-  state   String?
-  country String?  @default("USA")
-
-  notes  String?  @db.Text
-  tags   String[]
-  status CounterpartyStatus @default(ACTIVE)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  deals        Deal[]
-  contracts    Contract[]
-  contacts     CounterpartyContact[]
-  activities   Activity[]
-  alerts       Alert[]
-
-  @@index([organizationId, name])
-  @@index([organizationId, type])
-  @@index([organizationId, status])
-}
-
-model CounterpartyContact {
+model Vehicle {
   id             String @id @default(cuid())
-  counterpartyId String
-  name           String
-  title          String?
-  email          String?
-  phone          String?
-  isPrimary      Boolean @default(false)
-  notes          String? @db.Text
-
-  counterparty Counterparty @relation(fields: [counterpartyId], references: [id], onDelete: Cascade)
-
-  @@index([counterpartyId])
-}
-
-model Deal {
-  id             String  @id @default(cuid())
   organizationId String
-  counterpartyId String
-  assignedUserId String
-  dealNumber     String  @unique
+  stockNumber    String @unique
+  vin            String @unique
 
-  direction  DealDirection
-  commodity  Commodity
-  deliveryPoint String
-  product    ProductType
+  // Identity
+  year          Int
+  make          String
+  model         String
+  trim          String?
+  bodyStyle     String?
+  exteriorColor String?
+  interiorColor String?
 
-  startDate DateTime
-  endDate   DateTime
+  // Specs
+  mileage      Int              @default(0)
+  fuelType     FuelType         @default(GASOLINE)
+  transmission TransmissionType @default(AUTOMATIC)
+  drivetrain   DriveTrain       @default(FWD)
+  engineSize   String?
+  cylinders    Int?
+  mpgCity      Int?
+  mpgHighway   Int?
 
-  volume     Decimal    @db.Decimal(18, 4)
-  volumeUnit VolumeUnit
+  // Financials
+  condition     VehicleCondition @default(USED_GOOD)
+  costBasis     Decimal          @default(0) @db.Decimal(12, 2)
+  askingPrice   Decimal          @default(0) @db.Decimal(12, 2)
+  bookValue     Decimal?         @db.Decimal(12, 2)
+  floorPlanCost Decimal?         @db.Decimal(12, 2)
 
-  priceType       PriceType
-  fixedPrice      Decimal?  @db.Decimal(18, 6)
-  indexName       String?
-  indexAdjustment Decimal?  @db.Decimal(18, 6)
-  currency        Currency  @default(USD)
+  // Status & Lot
+  status         VehicleStatus @default(AVAILABLE)
+  lotLocation    String?
+  daysOnLot      Int           @default(0)
+  lotArrivalDate DateTime      @default(now())
 
-  totalNotionalValue  Decimal  @db.Decimal(18, 2) @default(0)
-  currentMarketPrice  Decimal? @db.Decimal(18, 6)
-  unrealizedPnl       Decimal  @db.Decimal(18, 2) @default(0)
+  // Source
+  acquisitionSource String?
+  auctionName       String?
+  previousOwners    Int?
 
-  stage       DealStage @default(ORIGINATION)
-  probability Int       @default(10)
-  weightedValue Decimal @db.Decimal(18, 2) @default(0)
-
-  source     DealSource @default(DIRECT)
-  brokerName String?
-  brokerFee  Decimal?   @db.Decimal(18, 2)
-
-  internalNotes String? @db.Text
-  externalNotes String? @db.Text
-  tags          String[]
-
-  closedAt  DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  counterparty   Counterparty   @relation(fields: [counterpartyId], references: [id])
-  assignedUser   User           @relation("AssignedDeals", fields: [assignedUserId], references: [id])
-  documents      DealDocument[]
-  activities     Activity[]
-  milestones     DealMilestone[]
-  contracts      Contract[]
-  alerts         Alert[]
-
-  @@index([organizationId, stage])
-  @@index([organizationId, counterpartyId])
-  @@index([organizationId, commodity])
-  @@index([createdAt])
-  @@index([dealNumber])
-}
-
-model DealMilestone {
-  id              String    @id @default(cuid())
-  dealId          String
-  stage           DealStage
-  enteredAt       DateTime  @default(now())
-  exitedAt        DateTime?
-  durationMinutes Int?
-
-  deal Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
-
-  @@index([dealId])
-}
-
-model DealDocument {
-  id           String       @id @default(cuid())
-  dealId       String
-  name         String
-  type         DocumentType
-  fileUrl      String
-  fileSize     Int?
-  uploadedById String
-  createdAt    DateTime     @default(now())
-
-  deal       Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
-  uploadedBy User @relation(fields: [uploadedById], references: [id])
-
-  @@index([dealId])
-}
-
-model Contract {
-  id             String         @id @default(cuid())
-  organizationId String
-  counterpartyId String
-  dealId         String?
-  contractNumber String         @unique
-
-  type            ContractType
-  status          ContractStatus @default(DRAFT)
-  effectiveDate   DateTime
-  expirationDate  DateTime?
-  autoRenew       Boolean        @default(false)
-  noticePeriodDays Int           @default(30)
-  fileUrl         String?
-  keyTerms        Json?
-  alertDaysBefore Int            @default(30)
+  // Media & Details
+  description String?  @db.Text
+  features    String[]
+  imageUrls   String[]
+  carfaxUrl   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  counterparty Counterparty  @relation(fields: [counterpartyId], references: [id])
-  deal         Deal?         @relation(fields: [dealId], references: [id])
+  salesDeals   SalesDeal[]
+  tradeIns     TradeIn[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, make, model])
+  @@index([organizationId, year])
+  @@index([vin])
+  @@index([stockNumber])
+}
+
+model Customer {
+  id             String @id @default(cuid())
+  organizationId String
+
+  // Identity
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  altPhone  String?
+
+  // Address
+  address String?
+  city    String?
+  state   String?
+  zip     String?
+
+  // Finance profile
+  creditTier        String? // Excellent / Good / Fair / Poor / Unknown
+  preApproved       Boolean  @default(false)
+  preApprovedAmount Decimal? @db.Decimal(12, 2)
+  preApprovedLender String?
+
+  // Lead info
+  leadSource LeadSource @default(WALK_IN)
+  referredBy String?
+  notes      String?    @db.Text
+  tags       String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  salesDeals   SalesDeal[]
+  activities   Activity[]
+  Alert        Alert[]
+
+  @@index([organizationId])
+  @@index([organizationId, lastName, firstName])
+  @@index([email])
+}
+
+model SalesDeal {
+  id             String @id @default(cuid())
+  organizationId String
+  dealNumber     String @unique
+  customerId     String
+  vehicleId      String
+  assignedUserId String
+
+  // Pipeline
+  stage       SaleDealStage @default(NEW_LEAD)
+  leadSource  LeadSource    @default(WALK_IN)
+  probability Int           @default(10)
+
+  // Pricing
+  askingPrice Decimal  @default(0) @db.Decimal(12, 2)
+  offerPrice  Decimal? @db.Decimal(12, 2)
+  salePrice   Decimal? @db.Decimal(12, 2)
+  costBasis   Decimal  @default(0) @db.Decimal(12, 2)
+
+  // Front-end gross (sale price - cost)
+  frontEndGross Decimal @default(0) @db.Decimal(12, 2)
+
+  // Back-end gross (F&I products)
+  financeReserve   Decimal? @db.Decimal(12, 2)
+  gapInsurance     Decimal? @db.Decimal(12, 2)
+  extendedWarranty Decimal? @db.Decimal(12, 2)
+  paintProtection  Decimal? @db.Decimal(12, 2)
+  otherFiProducts  Decimal? @db.Decimal(12, 2)
+  backEndGross     Decimal  @default(0) @db.Decimal(12, 2)
+
+  // Total gross
+  totalGross Decimal @default(0) @db.Decimal(12, 2)
+
+  // Finance
+  financeType    FinanceType @default(CASH)
+  lender         String?
+  loanAmount     Decimal?    @db.Decimal(12, 2)
+  interestRate   Decimal?    @db.Decimal(6, 4)
+  loanTermMonths Int?
+  monthlyPayment Decimal?    @db.Decimal(10, 2)
+  downPayment    Decimal?    @db.Decimal(12, 2)
+
+  // Trade-in
+  hasTradeIn Boolean @default(false)
+
+  // Fees
+  docFee          Decimal? @db.Decimal(10, 2)
+  titleFee        Decimal? @db.Decimal(10, 2)
+  registrationFee Decimal? @db.Decimal(10, 2)
+  salesTax        Decimal? @db.Decimal(10, 2)
+
+  // Notes
+  internalNotes String?  @db.Text
+  tags          String[]
+
+  // Dates
+  testDriveAt  DateTime?
+  offerMadeAt  DateTime?
+  contractedAt DateTime?
+  deliveredAt  DateTime?
+  closedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer          @relation(fields: [customerId], references: [id])
+  vehicle      Vehicle           @relation(fields: [vehicleId], references: [id])
+  assignedUser User              @relation("AssignedDeals", fields: [assignedUserId], references: [id])
+  contract     PurchaseContract?
+  tradeIn      TradeIn?
+  activities   Activity[]
   alerts       Alert[]
 
-  @@index([organizationId, counterpartyId])
-  @@index([organizationId, status])
-  @@index([expirationDate])
+  @@index([organizationId, stage])
+  @@index([organizationId, customerId])
+  @@index([organizationId, vehicleId])
+  @@index([dealNumber])
+  @@index([createdAt])
+}
+
+model TradeIn {
+  id          String  @id @default(cuid())
+  salesDealId String  @unique
+  vehicleId   String? // if the trade-in becomes inventory
+
+  // Identity
+  year    Int
+  make    String
+  model   String
+  trim    String?
+  vin     String?
+  mileage Int     @default(0)
+  color   String?
+
+  // Valuation
+  condition     TradeInCondition @default(GOOD)
+  acv           Decimal          @default(0) @db.Decimal(12, 2) // Actual Cash Value
+  allowance     Decimal          @default(0) @db.Decimal(12, 2) // What we give customer
+  payoffAmount  Decimal?         @db.Decimal(12, 2) // Lien payoff if any
+  payoffLender  String?
+  netTradeValue Decimal          @default(0) @db.Decimal(12, 2) // allowance - payoff
+
+  kbbValue Decimal? @db.Decimal(12, 2)
+  mmrValue Decimal? @db.Decimal(12, 2)
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  salesDeal SalesDeal @relation(fields: [salesDealId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle?  @relation(fields: [vehicleId], references: [id])
+
+  @@index([salesDealId])
+}
+
+model PurchaseContract {
+  id             String @id @default(cuid())
+  salesDealId    String @unique
+  contractNumber String @unique
+
+  status   ContractStatus @default(DRAFT)
+  signedAt DateTime?
+  fundedAt DateTime?
+
+  // Totals
+  vehiclePrice        Decimal  @db.Decimal(12, 2)
+  tradeAllowance      Decimal? @db.Decimal(12, 2)
+  cashDown            Decimal? @db.Decimal(12, 2)
+  totalFiProducts     Decimal? @db.Decimal(12, 2)
+  totalFees           Decimal? @db.Decimal(12, 2)
+  salesTax            Decimal? @db.Decimal(12, 2)
+  totalAmountFinanced Decimal? @db.Decimal(12, 2)
+  totalOutOfPocket    Decimal? @db.Decimal(12, 2)
+
+  fileUrl String?
+  notes   String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  salesDeal      SalesDeal     @relation(fields: [salesDealId], references: [id], onDelete: Cascade)
+  Organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
+
+  @@index([salesDealId])
 }
 
 model Activity {
-  id             String       @id @default(cuid())
+  id             String  @id @default(cuid())
   organizationId String
-  dealId         String?
-  counterpartyId String?
+  salesDealId    String?
+  customerId     String?
   userId         String
 
   type        ActivityType
@@ -469,33 +509,14 @@ model Activity {
 
   createdAt DateTime @default(now())
 
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  deal         Deal?         @relation(fields: [dealId], references: [id])
-  counterparty Counterparty? @relation(fields: [counterpartyId], references: [id])
-  user         User          @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  salesDeal    SalesDeal?   @relation(fields: [salesDealId], references: [id])
+  customer     Customer?    @relation(fields: [customerId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
 
-  @@index([dealId, createdAt])
-  @@index([counterpartyId, createdAt])
+  @@index([salesDealId, createdAt])
+  @@index([customerId, createdAt])
   @@index([organizationId, createdAt])
-}
-
-model MarketPrice {
-  id            String      @id @default(cuid())
-  commodity     Commodity
-  deliveryPoint String
-  indexName     String
-
-  date             DateTime
-  settlementPrice  Decimal  @db.Decimal(18, 6)
-  changeAbsolute   Decimal  @db.Decimal(18, 6) @default(0)
-  changePercent    Decimal  @db.Decimal(8, 4)  @default(0)
-  source           PriceSource @default(MANUAL)
-
-  createdAt DateTime @default(now())
-
-  @@unique([commodity, deliveryPoint, date])
-  @@index([commodity, deliveryPoint])
-  @@index([date])
 }
 
 model Alert {
@@ -507,20 +528,18 @@ model Alert {
   message        String        @db.Text
   severity       AlertSeverity @default(INFO)
 
-  relatedDealId         String?
-  relatedCounterpartyId String?
-  relatedContractId     String?
+  relatedDealId     String?
+  relatedCustomerId String?
 
-  isRead  Boolean   @default(false)
-  readAt  DateTime?
+  isRead Boolean   @default(false)
+  readAt DateTime?
 
   createdAt DateTime @default(now())
 
-  organization         Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user                 User          @relation(fields: [userId], references: [id])
-  relatedDeal          Deal?         @relation(fields: [relatedDealId], references: [id])
-  relatedCounterparty  Counterparty? @relation(fields: [relatedCounterpartyId], references: [id])
-  relatedContract      Contract?     @relation(fields: [relatedContractId], references: [id])
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id])
+  relatedDeal     SalesDeal?   @relation(fields: [relatedDealId], references: [id])
+  relatedCustomer Customer?    @relation(fields: [relatedCustomerId], references: [id])
 
   @@index([organizationId, userId, isRead])
   @@index([organizationId, createdAt])

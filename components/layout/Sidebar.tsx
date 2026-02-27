@@ -6,35 +6,24 @@ import { cn } from "@/lib/utils";
 import { useAppStore } from "@/store/app-store";
 import {
   LayoutDashboard,
-  GitPullRequest,
-  Building2,
+  Car,
+  Users,
   FileText,
-  TrendingUp,
   BarChart3,
   Settings,
   ChevronLeft,
   ChevronRight,
   Sun,
   Moon,
-  Zap,
 } from "lucide-react";
-
-function LogoFull({ color = "currentColor" }: { color?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" height={30} width={120} fill={color} aria-label="Dehy">
-      <path d="M20 4 L8 22 H17 L17 36 L29 18 H20 Z" />
-      <text x="38" y="30" fontFamily="Inter, DM Sans, Helvetica Neue, Arial, sans-serif" fontSize="26" fontWeight="600" letterSpacing="-0.5" fill={color}>Dehy</text>
-    </svg>
-  );
-}
+import { DealerseedLogo } from "@/components/ui/DealerseedLogo";
 
 const navItems = [
-  { href: "/dashboard",      icon: LayoutDashboard, label: "Dashboard"      },
-  { href: "/deals",          icon: GitPullRequest,  label: "Deals"          },
-  { href: "/counterparties", icon: Building2,       label: "Counterparties" },
-  { href: "/contracts",      icon: FileText,        label: "Contracts"      },
-  { href: "/market",         icon: TrendingUp,      label: "Market Data"    },
-  { href: "/reports",        icon: BarChart3,       label: "Reports"        },
+  { href: "/dashboard",   icon: LayoutDashboard, label: "Dashboard"  },
+  { href: "/inventory",   icon: Car,             label: "Inventory"  },
+  { href: "/deals",       icon: FileText,        label: "Deals"      },
+  { href: "/customers",   icon: Users,           label: "Customers"  },
+  { href: "/reports",     icon: BarChart3,       label: "Reports"    },
 ];
 
 function Tooltip({ label }: { label: string }) {
@@ -59,12 +48,12 @@ export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, theme, toggleTheme } = useAppStore();
   const isLight = theme === "light";
 
-  const iconColor    = (active: boolean) =>
+  const iconColor  = (active: boolean) =>
     active ? "var(--accent)" : isLight ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.45)";
-  const labelColor   = (active: boolean) =>
+  const labelColor = (active: boolean) =>
     active ? "var(--accent)" : isLight ? "rgba(0,0,0,0.72)" : "rgba(255,255,255,0.65)";
-  const subtleColor  = isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.30)";
-  const sectionColor = isLight ? "rgba(0,0,0,0.28)" : "rgba(255,255,255,0.22)";
+  const subtleColor  = isLight ? "rgba(0,0,0,0.35)"  : "rgba(255,255,255,0.30)";
+  const sectionColor = isLight ? "rgba(0,0,0,0.28)"  : "rgba(255,255,255,0.22)";
 
   return (
     <aside
@@ -80,9 +69,17 @@ export function Sidebar() {
         style={{ borderColor: "var(--sidebar-border)" }}
       >
         {sidebarCollapsed ? (
-          <Zap style={{ width: 22, height: 22, color: isLight ? "#1A2333" : "#FFFFFF", flexShrink: 0 }} />
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={22} height={22}
+               fill="none" stroke={isLight ? "#1A2333" : "#FFFFFF"} strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="3" fill={isLight ? "#1A2333" : "#FFFFFF"} stroke="none" />
+            <line x1="12" y1="2"  x2="12" y2="9"  />
+            <line x1="12" y1="15" x2="12" y2="22" />
+            <line x1="2"  y1="12" x2="9"  y2="12" />
+            <line x1="15" y1="12" x2="22" y2="12" />
+          </svg>
         ) : (
-          <LogoFull color={isLight ? "#1A2333" : "#FFFFFF"} />
+          <DealerseedLogo color={isLight ? "#1A2333" : "#FFFFFF"} height={30} />
         )}
       </div>
 
@@ -124,7 +121,6 @@ export function Sidebar() {
       {/* Bottom */}
       <div className="border-t py-2 px-2 space-y-0.5 flex-shrink-0"
            style={{ borderColor: "var(--sidebar-border)" }}>
-
         <Link
           href="/settings"
           className={cn(
@@ -146,7 +142,7 @@ export function Sidebar() {
         <button
           onClick={toggleTheme}
           className={cn(
-            "w-full flex items-center gap-3 py-2 rounded text-sm transition-all duration-120 group relative nav-item",
+            "w-full flex items-center gap-3 py-2 rounded text-sm transition-all duration-120 nav-item",
             sidebarCollapsed ? "justify-center px-2" : "px-3"
           )}
         >
@@ -165,7 +161,7 @@ export function Sidebar() {
         <button
           onClick={toggleSidebar}
           className={cn(
-            "w-full flex items-center gap-3 py-2 rounded text-sm transition-all duration-120 group nav-item",
+            "w-full flex items-center gap-3 py-2 rounded text-sm transition-all duration-120 nav-item",
             sidebarCollapsed ? "justify-center px-2" : "px-3"
           )}
         >

@@ -32,7 +32,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="md:hidden flex items-center justify-center min-h-screen p-8 text-center">
           <div>
             <p className="text-text-secondary text-sm">
-              DEHY is optimized for desktop. Please use a screen width of 1024px or larger.
+              Dealerseed is optimized for desktop. Please use a screen width of 1024px or larger.
             </p>
           </div>
         </div>

@@ -1,142 +1,229 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { format } from "date-fns";
-import { Bell, Search, ChevronDown, LogOut, Settings } from "lucide-react";
-import { useAppStore } from "@/store/app-store";
-import { useQuery } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
-import { useSession, signOut } from "next-auth/react";
-import Link from "next/link";
+import { useState, useEffect }          from "react";
+import { useSession }                   from "next-auth/react";
+import { useAppStore }                  from "@/store/app-store";
+import { Bell, Search, Clock, AlertTriangle, DollarSign, Users, CheckCircle, X } from "lucide-react";
+import { cn }                           from "@/lib/utils";
+import { useQuery }                     from "@tanstack/react-query";
 
-interface AlertCount {
-  unread: number;
+interface Alert {
+  id: string; type: string; title: string; message: string;
+  severity: string; isRead: boolean; createdAt: string;
+}
+
+const SEVERITY_COLORS: Record<string, string> = {
+  CRITICAL: "text-danger",
+  WARNING:  "text-warning",
+  INFO:     "text-blue-400",
+};
+
+const SEVERITY_BG: Record<string, string> = {
+  CRITICAL: "bg-danger/10",
+  WARNING:  "bg-warning/10",
+  INFO:     "bg-blue-500/10",
+};
+
+const TYPE_ICONS: Record<string, React.ElementType> = {
+  VEHICLE_AGING:     AlertTriangle,
+  DEAL_STALE:        Clock,
+  FOLLOW_UP_DUE:     Users,
+  FINANCE_EXPIRING:  DollarSign,
+  CUSTOM:            Bell,
+};
+
+function timeAgo(date: string) {
+  const diff = Date.now() - new Date(date).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
 export function Topbar() {
-  const { setCommandPaletteOpen, setNotificationsPanelOpen, notificationsPanelOpen } = useAppStore();
-  const [currentTime, setCurrentTime]   = useState<Date | null>(null);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const { data: session } = useSession();
-  const user    = session?.user as Record<string, string> | undefined;
-  const initials = user?.name ? user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() : "??";
+  const { data: session }                        = useSession();
+const { notificationPanelOpen, setNotificationPanelOpen, sidebarCollapsed, setCommandPaletteOpen } = useAppStore();
+  const [now, setNow]                            = useState("");
 
+  // Clock
   useEffect(() => {
-    setCurrentTime(new Date());
-    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Close user menu on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setUserMenuOpen(false);
-      }
+    const tick = () => {
+      const d = new Date();
+      setNow(d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) +
+        " · " + d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }));
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    tick();
+    const id = setInterval(tick, 60000);
+    return () => clearInterval(id);
   }, []);
 
-  const { data: alertCount } = useQuery<AlertCount>({
-    queryKey: ["alert-count"],
+  // Alerts count
+  const { data: alertData } = useQuery<{ total: number; alerts: Alert[] }>({
+    queryKey: ["dealer-alerts"],
     queryFn: async () => {
-      const res = await fetch("/api/alerts?unreadOnly=true&pageSize=1");
-      const json = await res.json();
-      return { unread: json.meta?.total ?? 0 };
+      const res = await fetch("/api/alerts?unreadOnly=true&pageSize=10");
+      if (!res.ok) return { total: 0, alerts: [] };
+      return res.json();
     },
-    refetchInterval: 30000,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
+  const unread  = alertData?.total ?? 0;
+  const alerts  = alertData?.alerts ?? [];
+
+  const initials = session?.user?.name
+    ?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() ?? "??";
+
   return (
-    <header className="fixed top-0 right-0 left-0 z-40 h-14 bg-bg-panel border-b border-border-default flex items-center px-4 gap-4">
-      {/* Spacer for sidebar */}
-      <div className="flex-1" />
-
-      {/* Global Search */}
-      <button
-        onClick={() => setCommandPaletteOpen(true)}
-        className="flex items-center gap-2 px-3 h-8 bg-bg-base border border-border-default rounded text-sm text-text-tertiary hover:border-border-hover transition-fast group min-w-[200px] max-w-[320px] w-full"
+    <>
+      <header
+        className={cn(
+          "fixed top-0 right-0 z-40 h-14 flex items-center justify-between px-4 border-b transition-all duration-200",
+        )}
+        style={{
+          left: sidebarCollapsed ? "4rem" : "240px",
+          background: "var(--bg-topbar)",
+          borderColor: "var(--sidebar-border)",
+        }}
       >
-        <Search className="w-3.5 h-3.5 flex-shrink-0" />
-        <span className="flex-1 text-left text-xs">Search deals, counterparties...</span>
-        <kbd className="hidden sm:flex items-center gap-0.5 text-[10px] text-text-disabled bg-bg-hover px-1.5 py-0.5 rounded border border-border-default font-mono">
-          <span>⌘</span><span>K</span>
-        </kbd>
-      </button>
+        {/* Left — page clock */}
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-text-tertiary hidden sm:block">{now}</span>
+        </div>
 
-      {/* Date/Time — only rendered client-side to avoid hydration mismatch */}
-      {currentTime && (
-        <div className="hidden md:flex flex-col items-end">
-          <span className="font-mono text-[11px] text-text-primary">
-            {format(currentTime, "HH:mm")}
-          </span>
-          <span className="font-mono text-[10px] text-text-tertiary">
-            {format(currentTime, "MMM d, yyyy")} CT
-          </span>
+        {/* Right */}
+        <div className="flex items-center gap-2">
+
+          {/* Search trigger */}
+          <button
+  onClick={() => setCommandPaletteOpen(true)}
+  className="flex items-center gap-2 h-8 px-3 rounded border text-xs transition-colors"
+  style={{
+    background:  "var(--bg-topbar)",
+    borderColor: "var(--border-default)",
+    color:       "var(--text-tertiary)",
+  }}
+  onMouseEnter={e => (e.currentTarget.style.color = "var(--text-secondary)")}
+  onMouseLeave={e => (e.currentTarget.style.color = "var(--text-tertiary)")}
+>
+  <Search className="w-3 h-3" />
+  <span className="hidden md:block">Search…</span>
+  <kbd
+    className="hidden md:block text-[10px] px-1 py-0.5 rounded"
+    style={{
+      background:  "var(--bg-hover)",
+      border:      "1px solid var(--border-default)",
+      color:       "var(--text-tertiary)",
+    }}
+  >
+    ⌘K
+  </kbd>
+</button>
+
+          {/* Notifications */}
+          <button
+            onClick={() => setNotificationPanelOpen(!notificationPanelOpen)}
+            className="relative p-2 rounded hover:bg-bg-hover transition-colors text-text-tertiary"
+          >
+            <Bell className="w-4 h-4" />
+            {unread > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-danger text-white text-[9px] font-bold flex items-center justify-center">
+                {unread > 9 ? "9+" : unread}
+              </span>
+            )}
+          </button>
+
+          {/* Avatar */}
+          <div className="flex items-center gap-2 pl-2 border-l border-border-default">
+            <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center text-[11px] font-bold text-accent">
+              {initials}
+            </div>
+            <div className="hidden md:block">
+              <p className="text-xs font-medium text-text-primary leading-none">{session?.user?.name ?? "—"}</p>
+              <p className="text-[10px] text-text-tertiary mt-0.5 leading-none">
+                {(session?.user as { orgName?: string })?.orgName ?? ""}
+              </p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Notification Panel ── */}
+      {notificationPanelOpen && (
+        <div
+          className="fixed inset-0 z-50 flex justify-end"
+          onClick={() => setNotificationPanelOpen(false)}
+        >
+          <div
+            className="w-[380px] bg-bg-base border-l border-border-default h-full overflow-hidden flex flex-col shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border-default">
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Notifications</p>
+                {unread > 0 && (
+                  <p className="text-xs text-text-tertiary">{unread} unread</p>
+                )}
+              </div>
+              <button onClick={() => setNotificationPanelOpen(false)} className="p-1 rounded hover:bg-bg-hover text-text-tertiary">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {alerts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 gap-2">
+                  <CheckCircle className="w-8 h-8 text-success opacity-50" />
+                  <p className="text-sm text-text-tertiary">All caught up!</p>
+                  <p className="text-xs text-text-disabled">No unread notifications</p>
+                </div>
+              ) : (
+                <div>
+                  {alerts.map(alert => {
+                    const Icon = TYPE_ICONS[alert.type] ?? Bell;
+                    return (
+                      <div
+                        key={alert.id}
+                        className={cn(
+                          "flex items-start gap-3 px-4 py-3 border-b border-border-default/40 hover:bg-bg-hover/30 transition-colors",
+                          !alert.isRead && "bg-accent/3"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5",
+                          SEVERITY_BG[alert.severity] ?? "bg-bg-panel"
+                        )}>
+                          <Icon className={cn("w-3.5 h-3.5", SEVERITY_COLORS[alert.severity] ?? "text-text-tertiary")} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-text-primary">{alert.title}</p>
+                          <p className="text-[11px] text-text-tertiary leading-relaxed mt-0.5 line-clamp-2">{alert.message}</p>
+                          <p className="text-[10px] text-text-disabled mt-1">{timeAgo(alert.createdAt)}</p>
+                        </div>
+                        {!alert.isRead && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0 mt-1.5" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Static dealer alerts when no DB alerts exist */}
+            {alerts.length === 0 && (
+              <div className="border-t border-border-default p-3">
+                <p className="text-[10px] text-text-tertiary text-center">
+                  Alerts will appear here for aging inventory, stale deals, and follow-ups
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
-
-      {/* Notifications */}
-      <button
-        onClick={() => setNotificationsPanelOpen(!notificationsPanelOpen)}
-        className={cn(
-          "relative flex items-center justify-center w-8 h-8 rounded border transition-fast",
-          notificationsPanelOpen
-            ? "bg-bg-card border-accent text-accent"
-            : "border-border-default text-text-tertiary hover:border-border-hover hover:text-text-secondary"
-        )}
-      >
-        <Bell className="w-4 h-4" />
-        {(alertCount?.unread ?? 0) > 0 && (
-          <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 bg-danger rounded-full text-[9px] font-bold text-white">
-            {alertCount!.unread > 9 ? "9+" : alertCount!.unread}
-          </span>
-        )}
-      </button>
-
-      {/* User Menu */}
-      <div className="relative pl-2 border-l border-border-default" ref={menuRef}>
-        <button
-          onClick={() => setUserMenuOpen(v => !v)}
-          className="flex items-center gap-2"
-        >
-          <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-semibold">
-            {initials}
-          </div>
-          <div className="hidden md:flex flex-col items-start">
-            <span className="text-xs font-medium text-text-primary">{user?.name ?? "User"}</span>
-            <span className="text-[10px] text-text-tertiary">{user?.orgName ?? "—"}</span>
-          </div>
-          <ChevronDown className="w-3 h-3 text-text-tertiary" />
-        </button>
-
-        {/* Dropdown */}
-        {userMenuOpen && (
-          <div className="absolute right-0 top-full mt-2 w-52 bg-bg-card border border-border-default rounded-lg shadow-modal py-1 z-50">
-            <div className="px-3 py-2 border-b border-border-default">
-              <p className="text-xs font-medium text-text-primary truncate">{user?.email}</p>
-              <p className="text-[10px] text-text-tertiary capitalize">{(user?.role ?? "").toLowerCase()} · {user?.orgName}</p>
-            </div>
-            <Link
-              href="/settings"
-              onClick={() => setUserMenuOpen(false)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-fast"
-            >
-              <Settings className="w-3.5 h-3.5" />
-              Settings
-            </Link>
-            <button
-              onClick={() => signOut({ callbackUrl: "/auth/login" })}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-danger hover:bg-danger/10 transition-fast"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Sign Out
-            </button>
-          </div>
-        )}
-      </div>
-    </header>
+    </>
   );
 }

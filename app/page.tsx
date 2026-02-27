@@ -2,545 +2,1148 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useAppStore } from "@/store/app-store";
 import {
-  Zap, TrendingUp, Shield, BarChart3, FileText, Users, Bell,
-  ArrowRight, CheckCircle2, Star, ChevronRight, Sun, Moon,
+  Car, Users, FileText, BarChart3, ArrowRight, Zap,
+  Smartphone, Check, X, ChevronDown, Star, DollarSign,
+  AlertTriangle, Layers, Database, Sun, Moon,
 } from "lucide-react";
+import { useAppStore } from "@/store/app-store";
 
-/* ── Logo ─────────────────────────────────────────────────────────────────── */
-function DehydLogo({ color = "#FFFFFF", height = 32 }: { color?: string; height?: number }) {
-  const width = Math.round(height * 4.2);
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" height={height} width={width} fill={color} aria-label="Dehy">
-      <path d="M20 4 L8 22 H17 L17 36 L29 18 H20 Z" />
-      <text x="38" y="30" fontFamily="Inter, DM Sans, Helvetica Neue, Arial, sans-serif" fontSize="26" fontWeight="600" letterSpacing="-0.5" fill={color}>Dehy</text>
-    </svg>
-  );
-}
+// ─── DESIGN TOKENS (mirrors login page exactly) ───────────────────────────────
+const ACCENT      = "#10B981";
+const ACCENT_HOV  = "#059669";
+const ACCENT_GLOW = "rgba(16,185,129,0.12)";
+const ACCENT_RING = "rgba(16,185,129,0.25)";
 
-/* ── Theme tokens — reactive to light/dark ───────────────────────────────── */
-function useTokens(isLight: boolean) {
+function useThemeTokens(isDark: boolean) {
   return {
-    bg:          isLight ? "#F4F7FA"              : "#000000",
-    panel:       isLight ? "#FFFFFF"              : "#0A0A0A",
-    card:        isLight ? "#FFFFFF"              : "#111111",
-    border:      isLight ? "rgba(0,0,0,0.08)"     : "rgba(255,255,255,0.07)",
-    accent:      isLight ? "#009E7F"              : "#00D4AA",
-    accentDim:   isLight ? "rgba(0,158,127,0.08)" : "rgba(0,212,170,0.12)",
-    accentBord:  isLight ? "rgba(0,158,127,0.20)" : "rgba(0,212,170,0.20)",
-    white:       isLight ? "#1A2333"              : "#FFFFFF",
-    muted:       isLight ? "#445268"              : "rgba(255,255,255,0.50)",
-    faint:       isLight ? "rgba(0,0,0,0.30)"     : "rgba(255,255,255,0.22)",
-    gridLine:    isLight ? "rgba(0,158,127,0.06)" : "rgba(0,212,170,0.04)",
-    orbColor:    isLight ? "rgba(0,158,127,0.05)" : "rgba(0,212,170,0.06)",
-    navBg:       isLight ? "rgba(255,255,255,0.92)": "rgba(0,0,0,0.85)",
-    shadow:      isLight ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-    cardShadow:  isLight ? "0 2px 12px rgba(0,0,0,0.06)" : "0 24px 80px rgba(0,0,0,0.8)",
+    bg:            isDark ? "#0A0F1A"                : "#F4F7FA",
+    bgPanel:       isDark ? "#0F1623"                : "#FFFFFF",
+    bgCard:        isDark ? "#111827"                : "#FFFFFF",
+    bgInput:       isDark ? "#141C2E"                : "#F8FAFC",
+    bgHover:       isDark ? "#1A2235"                : "#EEF2F7",
+    border:        isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)",
+    borderHov:     isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.14)",
+    textPrimary:   isDark ? "#F0F4FF"                : "#0F172A",
+    textSecondary: isDark ? "#8A9BB5"                : "#64748B",
+    textMuted:     isDark ? "rgba(138,155,181,0.55)" : "rgba(100,116,139,0.55)",
   };
 }
 
-/* ── Background (grid + orb) ─────────────────────────────────────────────── */
-function PageBackground({ T }: { T: ReturnType<typeof useTokens> }) {
-  return (
-    <>
-      {/* Grid */}
-      <div style={{
-        position:        "fixed",
-        inset:           0,
-        zIndex:          0,
-        pointerEvents:   "none",
-        backgroundImage: `linear-gradient(${T.gridLine} 1px, transparent 1px),
-                          linear-gradient(90deg, ${T.gridLine} 1px, transparent 1px)`,
-        backgroundSize:  "40px 40px",
-        transition:      "opacity 0.3s ease",
-      }} />
-      {/* Top orb */}
-      <div style={{
-        position:     "fixed",
-        top:          "-10%",
-        left:         "50%",
-        transform:    "translateX(-50%)",
-        width:        800,
-        height:       600,
-        borderRadius: "50%",
-        background:   `radial-gradient(circle, ${T.orbColor} 0%, transparent 70%)`,
-        pointerEvents:"none",
-        zIndex:       0,
-      }} />
-    </>
-  );
-}
+// ─── DATA ─────────────────────────────────────────────────────────────────────
 
-/* ── Dashboard Mock ──────────────────────────────────────────────────────── */
-function DashboardMock({ T }: { T: ReturnType<typeof useTokens> }) {
-  const deals = [
-    { id: "D-2847", name: "Shell Gas Purchase Q2",  qty: "50,000 MMBtu", price: "$3.24", dir: "BUY",  status: "EXECUTING", pnl: "+$12,400", pnlCol: "#22C55E" },
-    { id: "D-2848", name: "Meridian → BP LNG",      qty: "25,000 MMBtu", price: "$3.18", dir: "SELL", status: "PENDING",   pnl: "+$4,200",  pnlCol: "#22C55E" },
-    { id: "D-2849", name: "ERCOT Power Swap Jul",   qty: "200 MWh",      price: "$42.80",dir: "SELL", status: "CONFIRMED", pnl: "-$1,800",  pnlCol: "#EF4444" },
-    { id: "D-2850", name: "WTI Crude Spot Jul",     qty: "1,000 bbl",    price: "$83.40",dir: "BUY",  status: "DRAFT",     pnl: "$0",       pnlCol: T.faint   },
-    { id: "D-2851", name: "Henry Hub Sep Futures",  qty: "30,000 MMBtu", price: "$3.41", dir: "BUY",  status: "CONFIRMED", pnl: "+$8,700",  pnlCol: "#22C55E" },
-  ];
-  const dirColor  = (d: string) => d === "BUY" ? "#22C55E" : "#EF4444";
-  const statusBg  = (s: string) => {
-    if (s === "EXECUTING") return `${T.accentDim}`;
-    if (s === "CONFIRMED") return "rgba(34,197,94,0.10)";
-    if (s === "PENDING")   return "rgba(245,158,11,0.10)";
-    return "rgba(128,128,128,0.08)";
-  };
-  const statusCol = (s: string) => {
-    if (s === "EXECUTING") return T.accent;
-    if (s === "CONFIRMED") return "#22C55E";
-    if (s === "PENDING")   return "#F59E0B";
-    return T.faint;
-  };
-  return (
-    <div style={{
-      background: T.panel, border: `1px solid ${T.border}`,
-      borderRadius: 14, overflow: "hidden",
-      boxShadow: T.cardShadow,
-    }}>
-      <div style={{ background: T.card, padding: "10px 16px", display: "flex", alignItems: "center", gap: 8, borderBottom: `1px solid ${T.border}` }}>
-        <div style={{ display: "flex", gap: 6 }}>
-          {["#FF5F57","#FEBC2E","#28C840"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }}/>)}
-        </div>
-        <span style={{ fontSize: 11, color: T.faint, fontFamily: "monospace", marginLeft: 8 }}>Dehy — Deal Pipeline</span>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 12, alignItems: "center" }}>
-          <span style={{ fontSize: 11, color: T.accent, fontWeight: 600 }}>● LIVE</span>
-          <span style={{ fontSize: 11, color: T.faint }}>Meridian Energy Trading</span>
-        </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 1, borderBottom: `1px solid ${T.border}` }}>
-        {[
-          { l: "Total Pipeline",  v: "$284.5M",    sub: "+12.4% MTD",      vc: T.accent    },
-          { l: "Open Exposure",   v: "$18.4M",     sub: "4 counterparties", vc: "#F59E0B"  },
-          { l: "HH Spot",         v: "$3.24/MMBtu",sub: "▲ 0.08 today",    vc: "#3B82F6"  },
-          { l: "MTD P&L",         v: "+$23,500",   sub: "47 closed deals",  vc: "#22C55E"  },
-        ].map(m => (
-          <div key={m.l} style={{ padding: "16px 20px", background: T.panel, borderRight: `1px solid ${T.border}` }}>
-            <div style={{ fontSize: 11, color: T.faint, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>{m.l}</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: m.vc, fontFamily: "monospace", marginBottom: 4 }}>{m.v}</div>
-            <div style={{ fontSize: 11, color: T.faint }}>{m.sub}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{ overflowX: "auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 110px 90px 60px 100px 90px", padding: "8px 20px", borderBottom: `1px solid ${T.border}` }}>
-          {["ID","Deal Name","Volume","Price","Dir","Status","P&L"].map(h => (
-            <div key={h} style={{ fontSize: 10, color: T.faint, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }}>{h}</div>
-          ))}
-        </div>
-        {deals.map((d, i) => (
-          <div key={d.id} style={{
-            display: "grid", gridTemplateColumns: "80px 1fr 110px 90px 60px 100px 90px",
-            padding: "11px 20px", alignItems: "center",
-            background: i % 2 === 0 ? "transparent" : (T.panel === "#FFFFFF" ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.015)"),
-            borderBottom: `1px solid ${T.border}`,
-          }}>
-            <div style={{ fontSize: 11, color: T.faint, fontFamily: "monospace" }}>{d.id}</div>
-            <div style={{ fontSize: 12, color: T.white, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 12 }}>{d.name}</div>
-            <div style={{ fontSize: 11, color: T.muted, fontFamily: "monospace" }}>{d.qty}</div>
-            <div style={{ fontSize: 12, color: T.white, fontFamily: "monospace", fontWeight: 600 }}>{d.price}</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: dirColor(d.dir), background: `${dirColor(d.dir)}18`, padding: "2px 8px", borderRadius: 4, display: "inline-block" }}>{d.dir}</div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: statusCol(d.status), background: statusBg(d.status), padding: "3px 8px", borderRadius: 4, display: "inline-block" }}>{d.status}</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: d.pnlCol, fontFamily: "monospace" }}>{d.pnl}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ── Kanban Mock ─────────────────────────────────────────────────────────── */
-function KanbanMock({ T }: { T: ReturnType<typeof useTokens> }) {
-  const cols = [
-    { label: "Prospecting", color: T.faint,   cards: [{ name: "Vitol LNG Contract", val: "$4.2M", co: "Vitol" }, { name: "ExxonMobil NGL", val: "$1.8M", co: "ExxonMobil" }] },
-    { label: "Negotiating", color: "#F59E0B", cards: [{ name: "Shell Gas Q3", val: "$6.1M", co: "Shell" }, { name: "BP Crude Spot", val: "$12.4M", co: "BP" }, { name: "Trafigura NGL", val: "$3.3M", co: "Trafigura" }] },
-    { label: "Confirmed",   color: "#3B82F6", cards: [{ name: "TotalEnergies Power", val: "$8.8M", co: "TotalEnergies" }, { name: "Cargill Commodities", val: "$2.2M", co: "Cargill" }] },
-    { label: "Executing",   color: T.accent,  cards: [{ name: "Meridian → Cheniere", val: "$22.5M", co: "Cheniere" }] },
-  ];
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
-      {cols.map(col => (
-        <div key={col.label}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: col.color, flexShrink: 0 }}/>
-            <span style={{ fontSize: 11, color: T.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.07em" }}>{col.label}</span>
-            <span style={{ fontSize: 10, color: T.faint, marginLeft: "auto" }}>{col.cards.length}</span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {col.cards.map(c => (
-              <div key={c.name} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, padding: "10px 12px", boxShadow: T.shadow }}>
-                <div style={{ fontSize: 11, color: T.white, fontWeight: 500, marginBottom: 4, lineHeight: 1.4 }}>{c.name}</div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 10, color: T.faint }}>{c.co}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: T.accent, fontFamily: "monospace" }}>{c.val}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ── Market Mock ─────────────────────────────────────────────────────────── */
-function MarketMock({ T }: { T: ReturnType<typeof useTokens> }) {
-  const prices = [
-    { name: "Henry Hub",  val: "$3.24", chg: "+0.08", pct: "+2.5%",  pos: true  },
-    { name: "WTI Crude",  val: "$83.40",chg: "-0.62", pct: "-0.7%",  pos: false },
-    { name: "Brent",      val: "$87.15",chg: "+0.33", pct: "+0.4%",  pos: true  },
-    { name: "ERCOT (RT)", val: "$42.80",chg: "+5.20", pct: "+13.8%", pos: true  },
-    { name: "TTF Gas",    val: "€28.40",chg: "-0.90", pct: "-3.1%",  pos: false },
-    { name: "NBP Gas",    val: "70p",   chg: "+1.20", pct: "+1.7%",  pos: true  },
-  ];
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
-      {prices.map(p => (
-        <div key={p.name} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: "14px 16px", boxShadow: T.shadow }}>
-          <div style={{ fontSize: 11, color: T.faint, textTransform: "uppercase", letterSpacing: "0.06em" }}>{p.name}</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: T.white, fontFamily: "monospace", margin: "6px 0 2px" }}>{p.val}</div>
-          <div style={{ fontSize: 12, color: p.pos ? "#22C55E" : "#EF4444", fontWeight: 600 }}>
-            {p.pos ? "▲" : "▼"} {p.chg} ({p.pct})
-          </div>
-          <div style={{ height: 28, display: "flex", alignItems: "flex-end", gap: 2, marginTop: 8 }}>
-            {Array.from({ length: 14 }, (_, i) => {
-              const seed = (p.val.charCodeAt(1) + i * 7) % 100;
-              const h    = 25 + Math.abs(Math.sin(i * 0.9 + seed * 0.1) * 55);
-              return (
-                <div key={i} style={{
-                  flex: 1, height: `${Math.max(15, Math.min(100, h))}%`,
-                  background: p.pos ? "rgba(34,197,94,0.35)" : "rgba(239,68,68,0.35)",
-                  borderRadius: 1,
-                }}/>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ── Plans ───────────────────────────────────────────────────────────────── */
-const PLANS = [
-  { name: "Free",       price: "$0",   period: "/month", desc: "Individual traders and small desks",      cta: "Start Free",       href: "/auth/register?tier=FREE", highlight: false,
-    features: ["Up to 3 users","50 deals / month","Basic pipeline view","Market price feed","Email support"] },
-  { name: "Pro",        price: "$499", period: "/month", desc: "Growing trading firms and teams",          cta: "Start Pro Trial",  href: "/auth/register?tier=PRO",  highlight: true,
-    features: ["Up to 20 users","Unlimited deals","Kanban + table views","Live credit exposure","Custom reports & export","Stripe billing portal","Priority support"] },
-  { name: "Enterprise", price: "$999", period: "/month", desc: "Large organisations with custom needs",    cta: "Contact Sales",    href: "mailto:sales@dehy.io",     highlight: false,
-    features: ["Unlimited users","All Pro features","API access","Custom integrations","SLA & dedicated support","On-prem option"] },
+const STATS = [
+  { value: "35,000+", label: "Independent Lots in the US",   sub: "underserved by legacy software"      },
+  { value: "$1,500",  label: "Avg. monthly competitor cost", sub: "before add-ons & per-user fees"      },
+  { value: "47 hrs",  label: "Avg. lead response time",      sub: "without a modern CRM"                },
+  { value: "68%",     label: "Dealers on spreadsheets",      sub: "or pen-and-paper workflows"          },
 ];
 
-/* ── Main Page ───────────────────────────────────────────────────────────── */
-export default function HomePage() {
-  const { theme, toggleTheme } = useAppStore();
-  const isLight  = theme === "light";
-  const T        = useTokens(isLight);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
+const PAIN_POINTS = [
+  {
+    icon: DollarSign,
+    title: "Frazer is stuck in 2008",
+    desc: "Windows-only, no mobile, no real-time analytics. $129–$199/mo feels affordable until you count every deal you're losing.",
+    color: ACCENT,
+  },
+  {
+    icon: AlertTriangle,
+    title: "DealerCenter nickel-and-dimes you",
+    desc: "Starts at $60/mo — but meaningful features pile up fast. Complicated UI, steep curve, add-on fees for everything that matters.",
+    color: "#F59E0B",
+  },
+  {
+    icon: Layers,
+    title: "vAuto costs a fortune",
+    desc: "$600–$2,000/mo, built for franchise giants. Most features are irrelevant if you're running 20–200 cars on an independent lot.",
+    color: "#8B5CF6",
+  },
+  {
+    icon: Database,
+    title: "DealerSocket requires a PhD",
+    desc: "$1,000–$3,000/mo with weeks of onboarding. Designed for 50-location groups — overkill for a lean, fast-moving operation.",
+    color: "#06B6D4",
+  },
+];
 
-  const navLinks = [
-    { label: "Features",  href: "#features"  },
-    { label: "Dashboard", href: "#dashboard" },
-    { label: "Pricing",   href: "#pricing"   },
-  ];
+const FEATURES = [
+  { icon: Car,       title: "Smart Inventory",  tag: "Core",    desc: "VIN decode in seconds, aging alerts, live market valuation, photo management, and filterable pipeline view. Never let a unit sit unseen." },
+  { icon: Users,     title: "Deal Pipeline",    tag: "Core",    desc: "Kanban-style deal board with stage tracking, gross preview, F&I product builder, and one-click customer portal. Close faster, leak less profit." },
+  { icon: FileText,  title: "Docs & Compliance",tag: "Core",    desc: "Auto-generate buyer guides, spot-delivery packets, BHPH notes, and state forms. E-sign ready. No more printing stacks of paper." },
+  { icon: BarChart3, title: "Live Analytics",   tag: "Insight", desc: "Real-time gross per unit, floor-plan aging, sales velocity by model, and front/back-end profit breakdown. Your numbers, always current." },
+  { icon: Zap,       title: "AI Lead Response", tag: "AI",      desc: "Respond to web leads in under 60 seconds, 24/7, via SMS and email. Re-engage cold prospects automatically. Never miss a buyer again." },
+  { icon: Smartphone,title: "Mobile-First",     tag: "UX",      desc: "Full functionality on iOS and Android. Walk the lot, scan VINs, close deals, and check your numbers — all from your phone." },
+];
+
+const COMPARE = [
+  { feature: "Starting Price",        dealerseed: "$149/mo",   frazer: "$129/mo",  dealerCenter: "$60/mo*",   vAuto: "$600/mo",  dealerSocket: "$1,000/mo", note: "* DealerCenter price rises sharply with add-ons" },
+  { feature: "Mobile App",            dealerseed: true,        frazer: false,      dealerCenter: true,        vAuto: true,       dealerSocket: true  },
+  { feature: "AI Lead Response",      dealerseed: true,        frazer: false,      dealerCenter: false,       vAuto: false,      dealerSocket: true  },
+  { feature: "Real-Time Analytics",   dealerseed: true,        frazer: false,      dealerCenter: "Limited",   vAuto: true,       dealerSocket: true  },
+  { feature: "VIN Decoder",           dealerseed: true,        frazer: true,       dealerCenter: true,        vAuto: true,       dealerSocket: true  },
+  { feature: "No Per-User Fees",      dealerseed: true,        frazer: true,       dealerCenter: false,       vAuto: false,      dealerSocket: false },
+  { feature: "No Long-Term Contract", dealerseed: true,        frazer: false,      dealerCenter: false,       vAuto: false,      dealerSocket: false },
+  { feature: "Browser-Based",         dealerseed: true,        frazer: false,      dealerCenter: true,        vAuto: true,       dealerSocket: true  },
+  { feature: "E-Sign Documents",      dealerseed: true,        frazer: false,      dealerCenter: "Add-on",    vAuto: false,      dealerSocket: "Add-on" },
+  { feature: "Setup Time",            dealerseed: "< 1 day",   frazer: "3–5 days", dealerCenter: "2–3 days",  vAuto: "1–2 wks",  dealerSocket: "2–4 wks" },
+];
+
+const STEPS = [
+  { num: "01", title: "Import your inventory",  desc: "Paste a VIN or bulk-upload from CSV. We decode, enrich, and price every unit using live market data in under a minute." },
+  { num: "02", title: "Manage every deal",       desc: "From first contact to funded deal. Leads, offers, trade-ins, F&I, docs — all in one place, visible to your whole team." },
+  { num: "03", title: "Watch the numbers move",  desc: "Your dashboard updates in real time. Gross per unit, floor-plan cost, sales velocity, aging risk — everything a GM needs to act, not guess." },
+];
+
+const REVIEWS = [
+  { name: "Carlos M.",  title: "Owner, Rio Grande Auto Sales",  stars: 5, text: "Switched from Frazer after 7 years. The difference is night and day — my team actually uses this without complaining." },
+  { name: "Tanya R.",   title: "GM, Northside Pre-Owned",       stars: 5, text: "We were spending $2,400/month on DealerSocket for half the features we used. Dealerseed does everything for a third of the cost." },
+  { name: "Devon K.",   title: "Finance Manager, Lakeland Motors", stars: 5, text: "The gross preview updates as I'm structuring the deal. I haven't had a back-end surprise in three months." },
+];
+
+const PLANS = [
+  {
+    name: "Starter", price: "$149", per: "/mo", highlight: false,
+    desc: "Everything a single-location lot needs to run professionally.",
+    cta: "Start Free Trial", href: "/auth/register",
+    features: ["Up to 75 active units","Unlimited users","VIN decoder + live pricing","Deal pipeline (Kanban)","Basic document generation","Email & SMS lead capture","Standard analytics dashboard","Mobile app (iOS + Android)"],
+  },
+  {
+    name: "Pro", price: "$299", per: "/mo", highlight: true,
+    desc: "For growing lots that need AI, automation, and deeper insight.",
+    cta: "Start Free Trial", href: "/auth/register",
+    features: ["Unlimited active units","Unlimited users","Everything in Starter","AI 24/7 lead response","E-sign document suite","BHPH payment tracking","Advanced analytics + gross reports","Priority support (< 2 hr response)"],
+  },
+  {
+    name: "Enterprise", price: "Custom", per: "", highlight: false,
+    desc: "Multi-rooftop groups with custom integrations and white-glove onboarding.",
+    cta: "Talk to Sales", href: "/contact",
+    features: ["Everything in Pro","Multi-location dashboard","Custom DMS integration","Dedicated account manager","Custom reporting & exports","SLA-backed uptime guarantee","On-site onboarding available","API access"],
+  },
+];
+
+const FAQS = [
+  { q: "How long does setup take?",              a: "Most dealers are live in under a day. Import your inventory via CSV or VIN scan, invite your team, and start closing — no IT consultant required." },
+  { q: "Can I import data from Frazer or DealerCenter?", a: "Yes. We support CSV import from any system, and our onboarding team helps you migrate inventory, customer records, and deal history." },
+  { q: "Is there a contract or lock-in?",        a: "No contracts, no lock-in. Month-to-month only. Cancel any time from your account settings." },
+  { q: "Does Dealerseed work for BHPH lots?",    a: "Absolutely. Our Pro plan includes BHPH payment tracking, collections workflow, and buyer guide generation — everything a buy-here-pay-here operation needs." },
+  { q: "What does the free trial include?",      a: "Full access to the Pro tier for 14 days, no credit card required. Your data stays yours if you decide it's not the right fit." },
+];
+
+// ─── SUB-COMPONENTS ───────────────────────────────────────────────────────────
+
+function CellVal({ val }: { val: boolean | string }) {
+  if (val === true)  return <Check  size={16} color={ACCENT}    strokeWidth={2.5} />;
+  if (val === false) return <X      size={16} color="#EF4444"   strokeWidth={2.5} />;
+  return <span style={{ color: "#8A9BB5", fontSize: 12 }}>{val}</span>;
+}
+
+function Stars({ n }: { n: number }) {
+  return (
+    <span style={{ display: "flex", gap: 2 }}>
+      {Array.from({ length: n }).map((_, i) => (
+        <Star key={i} size={13} fill="#F59E0B" color="#F59E0B" />
+      ))}
+    </span>
+  );
+}
+
+// ─── NAVBAR ───────────────────────────────────────────────────────────────────
+
+function Navbar({ isDark, toggleTheme, tokens }: { isDark: boolean; toggleTheme: () => void; tokens: ReturnType<typeof useThemeTokens> }) {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", fn);
+    return () => window.removeEventListener("scroll", fn);
+  }, []);
 
   return (
-    <div
-      data-theme={theme}
+    <header
       style={{
-        background: T.bg, color: T.white,
-        fontFamily: "Inter, system-ui, sans-serif",
-        minHeight: "100vh", position: "relative",
-        transition: "background 0.2s ease, color 0.2s ease",
+        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
+        height: 60,
+        padding: "0 2rem",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: scrolled
+          ? isDark ? "rgba(10,15,26,0.88)" : "rgba(244,247,250,0.88)"
+          : "transparent",
+        backdropFilter: scrolled ? "blur(14px)" : "none",
+        borderBottom: scrolled ? `1px solid ${tokens.border}` : "none",
+        transition: "all 0.25s ease",
       }}
     >
-      <PageBackground T={T} />
+      {/* Wordmark — all caps, no icon */}
+      <Link href="/" style={{ textDecoration: "none" }}>
+        <span style={{
+          fontFamily: "Inter, sans-serif",
+          fontWeight: 800,
+          fontSize: 17,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: tokens.textPrimary,
+        }}>
+          Dealer<span style={{ color: ACCENT }}>seed</span>
+        </span>
+      </Link>
 
-      {/* ── Navbar ──────────────────────────────────────────────── */}
-      <nav style={{
-        position: "sticky", top: 0, zIndex: 50,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 40px", height: 60,
-        borderBottom: `1px solid ${T.border}`,
-        background: T.navBg,
-        backdropFilter: "blur(16px)",
-        transition: "background 0.2s ease",
-      }}>
-        <DehydLogo color={T.white} height={28} />
-        <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
-          {navLinks.map(n => (
-            <a key={n.href} href={n.href} style={{ fontSize: 13, color: T.muted, textDecoration: "none", transition: "color 0.15s" }}
-               onMouseEnter={e => (e.currentTarget.style.color = T.white)}
-               onMouseLeave={e => (e.currentTarget.style.color = T.muted)}>
-              {n.label}
-            </a>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          {/* Theme toggle */}
-          <button onClick={toggleTheme} style={{
-            width: 34, height: 34, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
-            background: T.card, border: `1px solid ${T.border}`, cursor: "pointer", transition: "all 0.2s",
-          }}>
-            {isLight
-              ? <Moon style={{ width: 15, height: 15, color: T.muted }} />
-              : <Sun  style={{ width: 15, height: 15, color: T.muted }} />
-            }
-          </button>
-          <Link href="/auth/login" style={{
-            fontSize: 13, color: T.muted, textDecoration: "none",
-            padding: "7px 16px", border: `1px solid ${T.border}`, borderRadius: 7,
-            transition: "all 0.15s",
-          }}>
-            Sign in
-          </Link>
-          <Link href="/auth/register" style={{
-            fontSize: 13, color: isLight ? "#FFFFFF" : "#000",
-            fontWeight: 600, textDecoration: "none",
-            padding: "7px 16px", background: T.accent, borderRadius: 7,
-          }}>
-            Get started free
-          </Link>
-        </div>
+      {/* Nav links */}
+      <nav style={{ display: "flex", gap: 28, alignItems: "center" }}>
+        {["Features", "Compare", "Pricing"].map(item => (
+          <a key={item} href={`#${item.toLowerCase()}`}
+            style={{ color: tokens.textSecondary, fontSize: 13, textDecoration: "none", transition: "color 0.15s" }}
+            onMouseEnter={e => (e.currentTarget.style.color = tokens.textPrimary)}
+            onMouseLeave={e => (e.currentTarget.style.color = tokens.textSecondary)}
+          >
+            {item}
+          </a>
+        ))}
       </nav>
 
-      {/* ── Hero ────────────────────────────────────────────────── */}
-      <section style={{ padding: "100px 40px 80px", textAlign: "center", position: "relative", zIndex: 1 }}>
+      {/* Right side */}
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        {/* Theme toggle — same style as login page */}
+        <button
+          onClick={toggleTheme}
+          style={{
+            padding: "0.4rem", borderRadius: "0.5rem",
+            border: `1px solid ${tokens.border}`,
+            background: tokens.bgPanel,
+            color: tokens.textSecondary,
+            cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          {isDark ? <Sun size={14} /> : <Moon size={14} />}
+        </button>
+
+        <Link href="/auth/login"
+          style={{ color: tokens.textSecondary, fontSize: 13, textDecoration: "none", padding: "7px 14px" }}
+        >
+          Sign in
+        </Link>
+
+        <Link href="/auth/register"
+          style={{
+            background: ACCENT,
+            color: "#fff",
+            fontSize: 13, fontWeight: 600,
+            padding: "8px 18px",
+            borderRadius: "0.5rem",
+            textDecoration: "none",
+            boxShadow: `0 0 18px ${ACCENT_GLOW}`,
+            transition: "background 0.2s",
+          }}
+          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = ACCENT_HOV)}
+          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = ACCENT)}
+        >
+          Start Free Trial
+        </Link>
+      </div>
+    </header>
+  );
+}
+
+// ─── HERO ─────────────────────────────────────────────────────────────────────
+
+function Hero({ isDark, tokens }: { isDark: boolean; tokens: ReturnType<typeof useThemeTokens> }) {
+  return (
+    <section style={{
+      minHeight: "100vh",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      textAlign: "center",
+      padding: "120px 2rem 80px",
+      position: "relative", overflow: "hidden",
+    }}>
+
+      {/* Grid — exact same as login page */}
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: isDark
+          ? `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+             linear-gradient(90deg,rgba(255,255,255,0.03) 1px, transparent 1px)`
+          : `linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+             linear-gradient(90deg,rgba(0,0,0,0.04) 1px, transparent 1px)`,
+        backgroundSize: "32px 32px",
+        pointerEvents: "none",
+      }} />
+
+      {/* Radial green glow orb — same as login page */}
+      <div style={{
+        position: "absolute",
+        top: "-10rem", left: "50%",
+        transform: "translateX(-50%)",
+        width: 700, height: 700,
+        borderRadius: "50%",
+        background: isDark
+          ? "radial-gradient(circle, rgba(16,185,129,0.13) 0%, transparent 70%)"
+          : "radial-gradient(circle, rgba(16,185,129,0.10) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+
+      {/* Badge */}
+      <div style={{
+        display: "inline-flex", alignItems: "center", gap: 8,
+        background: `rgba(16,185,129,0.08)`,
+        border: `1px solid rgba(16,185,129,0.22)`,
+        borderRadius: 999,
+        padding: "5px 16px",
+        marginBottom: 32,
+        position: "relative",
+      }}>
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: ACCENT, display: "inline-block" }} />
+        <span style={{ color: "#6EE7B7", fontSize: 12, fontWeight: 500 }}>
+          Built for independent & BHPH dealers — not franchise giants
+        </span>
+      </div>
+
+      {/* Headline */}
+      <h1 style={{
+        fontSize: "clamp(2.4rem, 5.5vw, 4rem)",
+        fontWeight: 800,
+        letterSpacing: -2,
+        lineHeight: 1.08,
+        color: tokens.textPrimary,
+        maxWidth: 780,
+        marginBottom: 22,
+        position: "relative",
+      }}>
+        The dealer CRM your{" "}
+        <span style={{
+          background: `linear-gradient(135deg, ${ACCENT}, #34D399)`,
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}>
+          entire team
+        </span>{" "}
+        will actually use
+      </h1>
+
+      {/* Subline */}
+      <p style={{
+        color: tokens.textSecondary,
+        fontSize: "clamp(0.95rem, 2vw, 1.15rem)",
+        maxWidth: 540, lineHeight: 1.7,
+        marginBottom: 44,
+        position: "relative",
+      }}>
+        Inventory, deals, docs, analytics, and AI lead response — one modern browser-based platform.
+        No Windows installs. No $1,500/mo invoices. No excuses.
+      </p>
+
+      {/* CTAs */}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", position: "relative" }}>
+        <Link href="/auth/register" style={{
+          background: ACCENT,
+          color: "#fff", fontWeight: 700, fontSize: 14,
+          padding: "13px 30px",
+          borderRadius: "0.6rem",
+          textDecoration: "none",
+          boxShadow: `0 0 32px ${ACCENT_GLOW}`,
+          display: "flex", alignItems: "center", gap: 8,
+          transition: "background 0.2s",
+        }}
+          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = ACCENT_HOV)}
+          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = ACCENT)}
+        >
+          Start Free Trial — 14 Days <ArrowRight size={15} />
+        </Link>
+        <a href="#compare" style={{
+          background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
+          border: `1px solid ${tokens.border}`,
+          color: tokens.textPrimary,
+          fontWeight: 600, fontSize: 14,
+          padding: "13px 30px",
+          borderRadius: "0.6rem",
+          textDecoration: "none",
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          Compare vs. Frazer / vAuto
+        </a>
+      </div>
+
+      <p style={{ color: tokens.textMuted, fontSize: 12, marginTop: 20, position: "relative" }}>
+        No credit card required · Cancel any time · Setup in under 1 day
+      </p>
+
+      {/* ── Mock Dashboard Preview ── */}
+      <div style={{
+        marginTop: 72,
+        width: "100%", maxWidth: 880,
+        borderRadius: "1rem",
+        border: `1px solid ${tokens.border}`,
+        background: tokens.bgPanel,
+        overflow: "hidden",
+        boxShadow: isDark
+          ? `0 0 0 1px rgba(255,255,255,0.04), 0 32px 80px rgba(0,0,0,0.5), 0 0 60px ${ACCENT_GLOW}`
+          : `0 1px 3px rgba(0,0,0,0.06), 0 24px 64px rgba(0,0,0,0.1)`,
+        position: "relative",
+      }}>
+        {/* Window chrome */}
         <div style={{
-          display: "inline-flex", alignItems: "center", gap: 8,
-          padding: "6px 14px", borderRadius: 99,
-          background: T.accentDim, border: `1px solid ${T.accentBord}`,
-          fontSize: 12, color: T.accent, fontWeight: 600, marginBottom: 28,
+          padding: "12px 16px",
+          borderBottom: `1px solid ${tokens.border}`,
+          display: "flex", alignItems: "center", gap: 7,
+          background: tokens.bgCard,
         }}>
-          <Zap style={{ width: 12, height: 12 }} />
-          Built for energy &amp; commodity traders
+          {["#EF4444","#F59E0B","#22C55E"].map(c => (
+            <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />
+          ))}
+          <div style={{
+            marginLeft: 10,
+            background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+            borderRadius: 5, padding: "3px 14px",
+            color: tokens.textSecondary, fontSize: 11,
+          }}>
+            app.dealerseed.com/dashboard
+          </div>
         </div>
 
-        <h1 style={{
-          fontSize: "clamp(36px,6vw,72px)", fontWeight: 900, lineHeight: 1.05,
-          letterSpacing: "-0.03em", margin: "0 auto 24px", maxWidth: 900,
-          color: T.white,
+        {/* KPI row */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "repeat(4,1fr)",
+          borderBottom: `1px solid ${tokens.border}`,
         }}>
-          The deal management platform<br />
-          <span style={{ color: T.accent }}>built for energy traders.</span>
-        </h1>
+          {[
+            { label: "Units In Stock",    val: "84",    change: "+6 this month",   up: true  },
+            { label: "Deals This Month",  val: "23",    change: "+4 vs last mo.",  up: true  },
+            { label: "Avg. Front Gross",  val: "$2,840",change: "+$220 vs last mo",up: true  },
+            { label: "Aging > 45 Days",   val: "7",     change: "↓2 improved",     up: true  },
+          ].map((k, i) => (
+            <div key={i} style={{
+              padding: "18px 22px",
+              borderRight: i < 3 ? `1px solid ${tokens.border}` : "none",
+            }}>
+              <div style={{ color: tokens.textSecondary, fontSize: 11, marginBottom: 5 }}>{k.label}</div>
+              <div style={{ color: tokens.textPrimary, fontSize: 22, fontWeight: 700, letterSpacing: -0.8 }}>{k.val}</div>
+              <div style={{ color: ACCENT, fontSize: 11, marginTop: 3 }}>{k.change}</div>
+            </div>
+          ))}
+        </div>
 
-        <p style={{ fontSize: "clamp(15px,1.8vw,19px)", color: T.muted, maxWidth: 620, margin: "0 auto 44px", lineHeight: 1.7 }}>
-          Dehy replaces scattered spreadsheets with a unified CRM — manage deals, track
-          credit exposure, monitor live commodity prices, and close faster.
+        {/* Kanban pipeline preview */}
+        <div style={{ display: "flex", gap: 0, overflowX: "auto", padding: 20 }}>
+          {[
+            { stage: "New Lead",    color: "#3B82F6", count: 11 },
+            { stage: "Contacted",   color: "#8B5CF6", count: 7  },
+            { stage: "Test Drive",  color: "#F59E0B", count: 5  },
+            { stage: "Negotiating", color: "#EF4444", count: 3  },
+            { stage: "Funded",      color: ACCENT,    count: 8  },
+          ].map((col, ci) => (
+            <div key={ci} style={{ flex: "0 0 160px", marginRight: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ color: tokens.textSecondary, fontSize: 11, fontWeight: 600 }}>{col.stage}</span>
+                <span style={{
+                  background: col.color + "22", color: col.color,
+                  borderRadius: 999, padding: "1px 7px",
+                  fontSize: 10, fontWeight: 700,
+                }}>{col.count}</span>
+              </div>
+              {Array.from({ length: 3 }).map((_, di) => (
+                <div key={di} style={{
+                  background: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+                  border: `1px solid ${tokens.border}`,
+                  borderRadius: 7, padding: "9px 10px", marginBottom: 7,
+                }}>
+                  <div style={{ width: "70%", height: 7, background: isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.08)", borderRadius: 4, marginBottom: 5 }} />
+                  <div style={{ width: "50%", height: 5, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)", borderRadius: 4 }} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── STATS BAR ────────────────────────────────────────────────────────────────
+
+function StatsBar({ tokens }: { tokens: ReturnType<typeof useThemeTokens> }) {
+  return (
+    <section style={{
+      padding: "56px 2rem",
+      borderTop: `1px solid ${tokens.border}`,
+      borderBottom: `1px solid ${tokens.border}`,
+      background: tokens.bgPanel,
+    }}>
+      <div style={{
+        maxWidth: 1100, margin: "0 auto",
+        display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 0,
+      }}>
+        {STATS.map((s, i) => (
+          <div key={i} style={{
+            textAlign: "center", padding: "0 20px",
+            borderRight: i < 3 ? `1px solid ${tokens.border}` : "none",
+          }}>
+            <div style={{ fontSize: "clamp(1.7rem,3vw,2.3rem)", fontWeight: 800, color: ACCENT, letterSpacing: -1, marginBottom: 5 }}>{s.value}</div>
+            <div style={{ color: tokens.textPrimary, fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{s.label}</div>
+            <div style={{ color: tokens.textSecondary, fontSize: 12 }}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── PAIN POINTS ──────────────────────────────────────────────────────────────
+
+function PainPoints({ isDark, tokens }: { isDark: boolean; tokens: ReturnType<typeof useThemeTokens> }) {
+  return (
+    <section style={{ padding: "96px 2rem", maxWidth: 1200, margin: "0 auto" }}>
+
+      {/* Section label — same pill style as login badge */}
+      <div style={{ textAlign: "center", marginBottom: 56 }}>
+        <span style={{
+          background: "rgba(239,68,68,0.08)",
+          border: "1px solid rgba(239,68,68,0.2)",
+          color: "#FCA5A5",
+          borderRadius: 999, padding: "4px 14px",
+          fontSize: 11, fontWeight: 600,
+          display: "inline-block", marginBottom: 18,
+          letterSpacing: "0.06em", textTransform: "uppercase",
+        }}>The Problem</span>
+        <h2 style={{
+          fontSize: "clamp(1.7rem,3.5vw,2.6rem)",
+          fontWeight: 800, letterSpacing: -1.5,
+          color: tokens.textPrimary, marginBottom: 14,
+        }}>
+          Your current software is costing you deals
+        </h2>
+        <p style={{ color: tokens.textSecondary, fontSize: 15, maxWidth: 520, margin: "0 auto", lineHeight: 1.65 }}>
+          Legacy platforms were built for a different era. Here's what you're actually dealing with.
         </p>
+      </div>
 
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <Link href="/auth/register" style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            padding: "13px 28px", background: T.accent,
-            color: isLight ? "#FFFFFF" : "#000",
-            fontWeight: 700, fontSize: 15, borderRadius: 9, textDecoration: "none",
-          }}>
-            Start free — no credit card <ArrowRight style={{ width: 16, height: 16 }} />
-          </Link>
-          <Link href="/auth/login" style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            padding: "13px 28px", border: `1px solid ${T.border}`, color: T.white,
-            fontWeight: 500, fontSize: 15, borderRadius: 9, textDecoration: "none",
-          }}>
-            View live demo
-          </Link>
-        </div>
-
-        {/* Social proof */}
-        <div style={{ display: "flex", gap: 40, justifyContent: "center", alignItems: "center", marginTop: 56, flexWrap: "wrap" }}>
-          {[{ v: "$2.4B+", l: "pipeline managed" }, { v: "12,000+", l: "deals tracked" }, { v: "98 ms", l: "avg response" }, { v: "99.9%", l: "uptime" }].map(s => (
-            <div key={s.l} style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 26, fontWeight: 800, color: T.white, fontFamily: "monospace" }}>{s.v}</div>
-              <div style={{ fontSize: 12, color: T.faint, marginTop: 4 }}>{s.l}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Dashboard Screenshot ─────────────────────────────────── */}
-      <section id="dashboard" style={{ padding: "40px 40px 100px", position: "relative", zIndex: 1 }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 48 }}>
-            <h2 style={{ fontSize: "clamp(26px,4vw,42px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 12, color: T.white }}>
-              Your entire trading desk, in one view.
-            </h2>
-            <p style={{ fontSize: 16, color: T.muted, maxWidth: 540, margin: "0 auto" }}>
-              Real-time deal pipeline, P&L tracking, and live market prices — all on one screen.
-            </p>
-          </div>
-          <DashboardMock T={T} />
-        </div>
-      </section>
-
-      {/* ── Kanban Section ──────────────────────────────────────── */}
-      <section style={{ padding: "80px 40px", background: T.panel, borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, position: "relative", zIndex: 1 }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
-          <div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 12px", borderRadius: 99, background: T.accentDim, border: `1px solid ${T.accentBord}`, fontSize: 11, color: T.accent, fontWeight: 600, marginBottom: 20, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Pipeline Management
-            </div>
-            <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 16, lineHeight: 1.2, color: T.white }}>
-              Kanban or table —<br/>your workflow, your way.
-            </h2>
-            <p style={{ fontSize: 15, color: T.muted, lineHeight: 1.75, marginBottom: 28, maxWidth: 420 }}>
-              Move deals through Prospecting → Negotiating → Confirmed → Executing with drag-and-drop simplicity.
-            </p>
-            <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-              {["Drag-and-drop Kanban board","Deal value & counterparty visible at a glance","Filter by commodity, direction, or status","One-click CSV / Excel export"].map(f => (
-                <li key={f} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 14, color: T.muted }}>
-                  <CheckCircle2 style={{ width: 16, height: 16, color: T.accent, flexShrink: 0 }} />
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <KanbanMock T={T} />
-        </div>
-      </section>
-
-      {/* ── Market Data Section ──────────────────────────────────── */}
-      <section style={{ padding: "80px 40px", position: "relative", zIndex: 1 }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
-          <MarketMock T={T} />
-          <div>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 12px", borderRadius: 99, background: T.accentDim, border: `1px solid ${T.accentBord}`, fontSize: 11, color: T.accent, fontWeight: 600, marginBottom: 20, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Live Market Data
-            </div>
-            <h2 style={{ fontSize: "clamp(24px,3.5vw,38px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 16, lineHeight: 1.2, color: T.white }}>
-              Henry Hub, WTI, Brent,<br/>ERCOT — all live.
-            </h2>
-            <p style={{ fontSize: 15, color: T.muted, lineHeight: 1.75, marginBottom: 28, maxWidth: 420 }}>
-              Powered by the EIA API, Dehy surfaces real-time commodity prices with sparklines and day-over-day changes.
-            </p>
-            <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-              {["HH, WTI, Brent, NBP, TTF & ERCOT","Day-change % and sparkline trend","Automatic refresh every 60 seconds","Historical price context"].map(f => (
-                <li key={f} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 14, color: T.muted }}>
-                  <CheckCircle2 style={{ width: 16, height: 16, color: T.accent, flexShrink: 0 }} />
-                  {f}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features Grid ────────────────────────────────────────── */}
-      <section id="features" style={{ padding: "80px 40px", background: T.panel, borderTop: `1px solid ${T.border}`, borderBottom: `1px solid ${T.border}`, position: "relative", zIndex: 1 }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <h2 style={{ fontSize: "clamp(26px,4vw,42px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 12, color: T.white }}>
-              Everything a trading desk needs.
-            </h2>
-            <p style={{ fontSize: 16, color: T.muted, maxWidth: 540, margin: "0 auto" }}>
-              From first contact to final settlement — Dehy handles the full deal lifecycle.
-            </p>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
-            {[
-              { icon: BarChart3,  title: "Deal Pipeline",     desc: "Track every deal from prospecting to settlement. Kanban & table views with custom filters." },
-              { icon: Shield,     title: "Credit Risk",       desc: "Live exposure per counterparty. Credit rating badges, limit monitoring, and alerts." },
-              { icon: TrendingUp, title: "Market Data",       desc: "HH, WTI, Brent, ERCOT, TTF prices via EIA API — live sparklines, day-change alerts." },
-              { icon: FileText,   title: "Contracts",         desc: "Store and version contracts linked to deals. Track execution and settlement status." },
-              { icon: BarChart3,  title: "Reports & Export",  desc: "MTD P&L, pipeline summary, exposure reports. Export to CSV / Excel in one click." },
-              { icon: Users,      title: "Team & Roles",      desc: "Multi-tenant orgs with role-based access. Admin, trader, viewer permission levels." },
-              { icon: Bell,       title: "Smart Alerts",      desc: "Price threshold, credit limit, and deal-stage alerts. Delivered in-app and by email." },
-              { icon: TrendingUp, title: "Counterparty CRM",  desc: "Full counterparty profiles: contact info, credit rating, deal history, and documents." },
-              { icon: Zap,        title: "Fast & Edge-ready", desc: "Sub-100ms API responses. Built on Postgres + Prisma + Next.js 14 App Router." },
-            ].map(f => (
-              <div key={f.title} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: "24px", boxShadow: T.shadow }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: T.accentDim, border: `1px solid ${T.accentBord}`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
-                  <f.icon style={{ width: 18, height: 18, color: T.accent }} />
-                </div>
-                <h3 style={{ fontSize: 15, fontWeight: 700, color: T.white, marginBottom: 8 }}>{f.title}</h3>
-                <p style={{ fontSize: 13, color: T.muted, lineHeight: 1.65 }}>{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Pricing ──────────────────────────────────────────────── */}
-      <section id="pricing" style={{ padding: "100px 40px", position: "relative", zIndex: 1 }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <h2 style={{ fontSize: "clamp(26px,4vw,42px)", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 12, color: T.white }}>
-              Simple, transparent pricing.
-            </h2>
-            <p style={{ fontSize: 16, color: T.muted, maxWidth: 480, margin: "0 auto" }}>Start free. Upgrade when your desk grows.</p>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
-            {PLANS.map(plan => (
-              <div key={plan.name} style={{
-                background: plan.highlight ? T.accentDim : T.card,
-                border: `1px solid ${plan.highlight ? T.accent : T.border}`,
-                borderRadius: 14, padding: "32px 28px", position: "relative",
-                boxShadow: plan.highlight ? `0 0 40px ${T.accentDim}` : T.shadow,
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(270px,1fr))", gap: 18 }}>
+        {PAIN_POINTS.map((p, i) => {
+          const Icon = p.icon;
+          return (
+            <div key={i}
+              style={{
+                background: tokens.bgCard,
+                border: `1px solid ${tokens.border}`,
+                borderRadius: "1rem", padding: 26,
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLDivElement;
+                el.style.borderColor = p.color + "44";
+                el.style.transform = "translateY(-2px)";
+                el.style.boxShadow = isDark ? `0 12px 32px rgba(0,0,0,0.3)` : `0 8px 24px rgba(0,0,0,0.08)`;
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLDivElement;
+                el.style.borderColor = tokens.border;
+                el.style.transform = "translateY(0)";
+                el.style.boxShadow = "none";
+              }}
+            >
+              <div style={{
+                width: 42, height: 42, borderRadius: 10,
+                background: p.color + "15",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                marginBottom: 16,
               }}>
-                {plan.highlight && (
-                  <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: T.accent, color: isLight ? "#fff" : "#000", fontWeight: 700, fontSize: 11, padding: "4px 14px", borderRadius: 99, display: "flex", alignItems: "center", gap: 4 }}>
-                    <Star style={{ width: 10, height: 10 }} /> Most popular
-                  </div>
-                )}
-                <span style={{ fontSize: 13, fontWeight: 600, color: plan.highlight ? T.accent : T.muted, textTransform: "uppercase", letterSpacing: "0.07em" }}>{plan.name}</span>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4, margin: "12px 0 6px" }}>
-                  <span style={{ fontSize: 40, fontWeight: 800, color: T.white, fontFamily: "monospace" }}>{plan.price}</span>
-                  <span style={{ fontSize: 13, color: T.faint }}>{plan.period}</span>
-                </div>
-                <p style={{ fontSize: 13, color: T.muted, marginBottom: 24 }}>{plan.desc}</p>
-                <Link href={plan.href} style={{ display: "block", textAlign: "center", padding: "11px 20px", background: plan.highlight ? T.accent : "transparent", border: `1px solid ${plan.highlight ? T.accent : T.border}`, color: plan.highlight ? (isLight ? "#fff" : "#000") : T.white, fontWeight: 600, fontSize: 14, borderRadius: 8, textDecoration: "none", marginBottom: 24 }}>
-                  {plan.cta}
-                </Link>
-                <ul style={{ listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-                  {plan.features.map(f => (
-                    <li key={f} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13, color: T.muted }}>
-                      <CheckCircle2 style={{ width: 15, height: 15, color: plan.highlight ? T.accent : T.faint, flexShrink: 0, marginTop: 1 }} />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
+                <Icon size={19} color={p.color} />
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+              <h3 style={{ color: tokens.textPrimary, fontWeight: 700, fontSize: 16, marginBottom: 9 }}>{p.title}</h3>
+              <p style={{ color: tokens.textSecondary, fontSize: 13, lineHeight: 1.65 }}>{p.desc}</p>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
-      {/* ── CTA Banner ──────────────────────────────────────────── */}
-      <section style={{ padding: "80px 40px", background: T.panel, borderTop: `1px solid ${T.border}`, textAlign: "center", position: "relative", zIndex: 1 }}>
-        <div style={{ maxWidth: 600, margin: "0 auto" }}>
-          <DehydLogo color={T.white} height={36} />
-          <h2 style={{ fontSize: "clamp(24px,4vw,40px)", fontWeight: 800, letterSpacing: "-0.025em", margin: "24px 0 14px", color: T.white }}>
-            Ready to close more deals?
+// ─── FEATURES ─────────────────────────────────────────────────────────────────
+
+function Features({ isDark, tokens }: { isDark: boolean; tokens: ReturnType<typeof useThemeTokens> }) {
+  const tagColors: Record<string, string> = {
+    Core: ACCENT, Insight: "#8B5CF6", AI: "#06B6D4", UX: "#F59E0B",
+  };
+
+  return (
+    <section id="features" style={{
+      padding: "96px 2rem",
+      background: tokens.bgPanel,
+      borderTop: `1px solid ${tokens.border}`,
+      borderBottom: `1px solid ${tokens.border}`,
+    }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <span style={{
+            background: `rgba(16,185,129,0.08)`,
+            border: `1px solid rgba(16,185,129,0.22)`,
+            color: "#6EE7B7",
+            borderRadius: 999, padding: "4px 14px",
+            fontSize: 11, fontWeight: 600,
+            display: "inline-block", marginBottom: 18,
+            letterSpacing: "0.06em", textTransform: "uppercase",
+          }}>Features</span>
+          <h2 style={{
+            fontSize: "clamp(1.7rem,3.5vw,2.6rem)",
+            fontWeight: 800, letterSpacing: -1.5,
+            color: tokens.textPrimary, marginBottom: 14,
+          }}>
+            Everything you need. Nothing you don't.
           </h2>
-          <p style={{ fontSize: 16, color: T.muted, marginBottom: 36, lineHeight: 1.7 }}>
-            Start with a free account — no credit card required. Upgrade any time as your desk grows.
+          <p style={{ color: tokens.textSecondary, fontSize: 15, maxWidth: 480, margin: "0 auto" }}>
+            One platform covering inventory to funded deal — without the enterprise price tag.
           </p>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-            <Link href="/auth/register" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 28px", background: T.accent, color: isLight ? "#fff" : "#000", fontWeight: 700, fontSize: 15, borderRadius: 9, textDecoration: "none" }}>
-              Get started free <ArrowRight style={{ width: 16, height: 16 }} />
-            </Link>
-            <Link href="/auth/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "13px 28px", border: `1px solid ${T.border}`, color: T.white, fontWeight: 500, fontSize: 15, borderRadius: 9, textDecoration: "none" }}>
-              Sign in <ChevronRight style={{ width: 15, height: 15 }} />
-            </Link>
-          </div>
         </div>
-      </section>
 
-      {/* ── Footer ──────────────────────────────────────────────── */}
-      <footer style={{ padding: "24px 40px", borderTop: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, position: "relative", zIndex: 1 }}>
-        <DehydLogo color={T.faint} height={22} />
-        <p style={{ fontSize: 12, color: T.faint }}>© {new Date().getFullYear()} Dehy. Built for energy &amp; commodity traders.</p>
-        <div style={{ display: "flex", gap: 24 }}>
-          {[["Sign in","/auth/login"],["Register","/auth/register"],["Pricing","#pricing"]].map(([l,h]) => (
-            <Link key={l} href={h} style={{ fontSize: 12, color: T.faint, textDecoration: "none" }}>{l}</Link>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 18 }}>
+          {FEATURES.map((f, i) => {
+            const Icon = f.icon;
+            const c = tagColors[f.tag] || ACCENT;
+            return (
+              <div key={i}
+                style={{
+                  background: tokens.bgCard,
+                  border: `1px solid ${tokens.border}`,
+                  borderRadius: "1rem", padding: 26,
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.borderColor = c + "44";
+                  el.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLDivElement;
+                  el.style.borderColor = tokens.border;
+                  el.style.transform = "translateY(0)";
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <div style={{
+                    width: 42, height: 42, borderRadius: 10,
+                    background: c + "15",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <Icon size={19} color={c} />
+                  </div>
+                  <span style={{
+                    background: c + "15", color: c,
+                    borderRadius: 999, padding: "2px 10px",
+                    fontSize: 10, fontWeight: 700, letterSpacing: 0.6,
+                  }}>{f.tag}</span>
+                </div>
+                <h3 style={{ color: tokens.textPrimary, fontWeight: 700, fontSize: 16, marginBottom: 9 }}>{f.title}</h3>
+                <p style={{ color: tokens.textSecondary, fontSize: 13, lineHeight: 1.65 }}>{f.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── COMPARE TABLE ────────────────────────────────────────────────────────────
+
+function CompareTable({ tokens }: { tokens: ReturnType<typeof useThemeTokens> }) {
+  return (
+    <section id="compare" style={{ padding: "96px 2rem", maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ textAlign: "center", marginBottom: 56 }}>
+        <span style={{
+          background: "rgba(139,92,246,0.08)",
+          border: "1px solid rgba(139,92,246,0.22)",
+          color: "#C4B5FD",
+          borderRadius: 999, padding: "4px 14px",
+          fontSize: 11, fontWeight: 600,
+          display: "inline-block", marginBottom: 18,
+          letterSpacing: "0.06em", textTransform: "uppercase",
+        }}>Comparison</span>
+        <h2 style={{
+          fontSize: "clamp(1.7rem,3.5vw,2.6rem)",
+          fontWeight: 800, letterSpacing: -1.5,
+          color: tokens.textPrimary, marginBottom: 14,
+        }}>
+          See how we stack up
+        </h2>
+        <p style={{ color: tokens.textSecondary, fontSize: 15, maxWidth: 460, margin: "0 auto" }}>
+          Real features, real pricing. No "contact us for quote" games.
+        </p>
+      </div>
+
+      <div style={{
+        borderRadius: "1rem",
+        border: `1px solid ${tokens.border}`,
+        overflow: "hidden",
+        background: tokens.bgCard,
+      }}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: tokens.bgPanel }}>
+                <th style={{ padding: "15px 22px", textAlign: "left", color: tokens.textSecondary, fontSize: 12, fontWeight: 600, borderBottom: `1px solid ${tokens.border}`, minWidth: 190 }}>
+                  Feature
+                </th>
+                {[
+                  { name: "DEALERSEED", highlight: true },
+                  { name: "Frazer",       highlight: false },
+                  { name: "DealerCenter", highlight: false },
+                  { name: "vAuto",        highlight: false },
+                  { name: "DealerSocket", highlight: false },
+                ].map(col => (
+                  <th key={col.name} style={{
+                    padding: "15px 18px", textAlign: "center",
+                    color: col.highlight ? ACCENT : tokens.textSecondary,
+                    fontSize: 12, fontWeight: 700,
+                    borderBottom: `1px solid ${tokens.border}`,
+                    background: col.highlight ? `rgba(16,185,129,0.05)` : "transparent",
+                    minWidth: 120,
+                  }}>
+                    {col.name}
+                    {col.highlight && (
+                      <span style={{
+                        background: ACCENT, color: "#fff",
+                        fontSize: 8, fontWeight: 800,
+                        padding: "2px 7px", borderRadius: 999,
+                        marginLeft: 7, letterSpacing: 0.5,
+                        verticalAlign: "middle",
+                      }}>YOU</span>
+                    )}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARE.map((row, i) => (
+                <tr key={i} style={{ borderBottom: i < COMPARE.length - 1 ? `1px solid ${tokens.border}` : "none" }}>
+                  <td style={{ padding: "13px 22px", color: tokens.textPrimary, fontSize: 13 }}>
+                    {row.feature}
+                    {row.note && <div style={{ color: tokens.textSecondary, fontSize: 10, marginTop: 2 }}>{row.note}</div>}
+                  </td>
+                  {[row.dealerseed, row.frazer, row.dealerCenter, row.vAuto, row.dealerSocket].map((val, ci) => (
+                    <td key={ci} style={{
+                      padding: "13px 18px", textAlign: "center",
+                      background: ci === 0 ? `rgba(16,185,129,0.03)` : "transparent",
+                    }}>
+                      <CellVal val={val as boolean | string} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p style={{ color: tokens.textMuted, fontSize: 11, textAlign: "center", marginTop: 14 }}>
+        Competitor pricing sourced from Capterra, G2, debexpert.com, autoraptor.com — February 2026
+      </p>
+    </section>
+  );
+}
+
+// ─── HOW IT WORKS ─────────────────────────────────────────────────────────────
+
+function HowItWorks({ tokens }: { tokens: ReturnType<typeof useThemeTokens> }) {
+  return (
+    <section style={{
+      padding: "96px 2rem",
+      background: tokens.bgPanel,
+      borderTop: `1px solid ${tokens.border}`,
+      borderBottom: `1px solid ${tokens.border}`,
+    }}>
+      <div style={{ maxWidth: 860, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <span style={{
+            background: "rgba(6,182,212,0.08)",
+            border: "1px solid rgba(6,182,212,0.22)",
+            color: "#67E8F9",
+            borderRadius: 999, padding: "4px 14px",
+            fontSize: 11, fontWeight: 600,
+            display: "inline-block", marginBottom: 18,
+            letterSpacing: "0.06em", textTransform: "uppercase",
+          }}>How It Works</span>
+          <h2 style={{
+            fontSize: "clamp(1.7rem,3.5vw,2.6rem)",
+            fontWeight: 800, letterSpacing: -1.5, color: tokens.textPrimary,
+          }}>
+            Live in under a day
+          </h2>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {STEPS.map((step, i) => (
+            <div key={i} style={{
+              display: "flex", gap: 28, alignItems: "flex-start",
+              padding: "32px 0",
+              borderBottom: i < STEPS.length - 1 ? `1px solid ${tokens.border}` : "none",
+            }}>
+              <div style={{
+                flexShrink: 0, width: 52, height: 52,
+                borderRadius: 13,
+                background: `rgba(16,185,129,0.10)`,
+                border: `1px solid rgba(16,185,129,0.25)`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: ACCENT, fontSize: 18, fontWeight: 800, letterSpacing: -1,
+              }}>
+                {step.num}
+              </div>
+              <div>
+                <h3 style={{ color: tokens.textPrimary, fontWeight: 700, fontSize: 18, marginBottom: 9 }}>{step.title}</h3>
+                <p style={{ color: tokens.textSecondary, fontSize: 14, lineHeight: 1.7, maxWidth: 580 }}>{step.desc}</p>
+              </div>
+            </div>
           ))}
         </div>
-      </footer>
+      </div>
+    </section>
+  );
+}
+
+// ─── REVIEWS ──────────────────────────────────────────────────────────────────
+
+function Reviews({ tokens }: { tokens: ReturnType<typeof useThemeTokens> }) {
+  return (
+    <section style={{ padding: "96px 2rem", maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ textAlign: "center", marginBottom: 56 }}>
+        <span style={{
+          background: "rgba(245,158,11,0.08)",
+          border: "1px solid rgba(245,158,11,0.22)",
+          color: "#FCD34D",
+          borderRadius: 999, padding: "4px 14px",
+          fontSize: 11, fontWeight: 600,
+          display: "inline-block", marginBottom: 18,
+          letterSpacing: "0.06em", textTransform: "uppercase",
+        }}>Testimonials</span>
+        <h2 style={{
+          fontSize: "clamp(1.7rem,3.5vw,2.6rem)",
+          fontWeight: 800, letterSpacing: -1.5, color: tokens.textPrimary,
+        }}>
+          Dealers who made the switch
+        </h2>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(290px,1fr))", gap: 18 }}>
+        {REVIEWS.map((r, i) => (
+          <div key={i} style={{
+            background: tokens.bgCard,
+            border: `1px solid ${tokens.border}`,
+            borderRadius: "1rem", padding: 26,
+          }}>
+            <Stars n={r.stars} />
+            <p style={{
+              color: tokens.textPrimary, fontSize: 14,
+              lineHeight: 1.7, margin: "14px 0 22px",
+              fontStyle: "italic",
+            }}>"{r.text}"</p>
+            <div>
+              <div style={{ color: tokens.textPrimary, fontWeight: 700, fontSize: 13 }}>{r.name}</div>
+              <div style={{ color: tokens.textSecondary, fontSize: 12 }}>{r.title}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── PRICING ──────────────────────────────────────────────────────────────────
+
+function Pricing({ isDark, tokens }: { isDark: boolean; tokens: ReturnType<typeof useThemeTokens> }) {
+  return (
+    <section id="pricing" style={{
+      padding: "96px 2rem",
+      background: tokens.bgPanel,
+      borderTop: `1px solid ${tokens.border}`,
+      borderBottom: `1px solid ${tokens.border}`,
+    }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 56 }}>
+          <span style={{
+            background: `rgba(16,185,129,0.08)`,
+            border: `1px solid rgba(16,185,129,0.22)`,
+            color: "#6EE7B7",
+            borderRadius: 999, padding: "4px 14px",
+            fontSize: 11, fontWeight: 600,
+            display: "inline-block", marginBottom: 18,
+            letterSpacing: "0.06em", textTransform: "uppercase",
+          }}>Pricing</span>
+          <h2 style={{
+            fontSize: "clamp(1.7rem,3.5vw,2.6rem)",
+            fontWeight: 800, letterSpacing: -1.5, color: tokens.textPrimary, marginBottom: 14,
+          }}>
+            Transparent pricing. Zero surprises.
+          </h2>
+          <p style={{ color: tokens.textSecondary, fontSize: 15, maxWidth: 440, margin: "0 auto" }}>
+            Every plan includes unlimited users. No per-seat fees. No hidden add-ons.
+          </p>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(290px,1fr))", gap: 18 }}>
+          {PLANS.map((plan, i) => (
+            <div key={i} style={{
+              background: plan.highlight
+                ? isDark
+                  ? `linear-gradient(160deg, rgba(16,185,129,0.12), rgba(5,150,105,0.06))`
+                  : `linear-gradient(160deg, rgba(16,185,129,0.08), rgba(5,150,105,0.04))`
+                : tokens.bgCard,
+              border: plan.highlight ? `1.5px solid rgba(16,185,129,0.35)` : `1px solid ${tokens.border}`,
+              borderRadius: "1.1rem", padding: 30,
+              position: "relative",
+              transition: "transform 0.2s",
+              boxShadow: plan.highlight ? `0 0 40px ${ACCENT_GLOW}` : "none",
+            }}
+              onMouseEnter={e => ((e.currentTarget as HTMLDivElement).style.transform = "translateY(-3px)")}
+              onMouseLeave={e => ((e.currentTarget as HTMLDivElement).style.transform = "translateY(0)")}
+            >
+              {plan.highlight && (
+                <div style={{
+                  position: "absolute", top: -12, left: "50%",
+                  transform: "translateX(-50%)",
+                  background: ACCENT, color: "#fff",
+                  fontSize: 10, fontWeight: 800,
+                  padding: "3px 14px", borderRadius: 999,
+                  letterSpacing: 1, whiteSpace: "nowrap",
+                }}>MOST POPULAR</div>
+              )}
+              <div style={{ marginBottom: 22 }}>
+                <h3 style={{ color: tokens.textPrimary, fontSize: 18, fontWeight: 700, marginBottom: 5 }}>{plan.name}</h3>
+                <p style={{ color: tokens.textSecondary, fontSize: 12 }}>{plan.desc}</p>
+              </div>
+              <div style={{ marginBottom: 26 }}>
+                <span style={{ color: tokens.textPrimary, fontSize: 38, fontWeight: 800, letterSpacing: -2 }}>{plan.price}</span>
+                <span style={{ color: tokens.textSecondary, fontSize: 14 }}>{plan.per}</span>
+              </div>
+              <Link href={plan.href} style={{
+                display: "block", textAlign: "center",
+                padding: "11px 0", borderRadius: "0.5rem",
+                fontWeight: 700, fontSize: 13,
+                textDecoration: "none",
+                background: plan.highlight ? ACCENT : isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
+                color: plan.highlight ? "#fff" : tokens.textPrimary,
+                marginBottom: 24,
+                transition: "background 0.2s",
+                boxShadow: plan.highlight ? `0 0 20px ${ACCENT_GLOW}` : "none",
+              }}
+                onMouseEnter={e => { if (plan.highlight) (e.currentTarget as HTMLAnchorElement).style.background = ACCENT_HOV; }}
+                onMouseLeave={e => { if (plan.highlight) (e.currentTarget as HTMLAnchorElement).style.background = ACCENT; }}
+              >
+                {plan.cta}
+              </Link>
+              <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+                {plan.features.map((feat, fi) => (
+                  <div key={fi} style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
+                    <Check size={14} color={ACCENT} strokeWidth={2.5} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span style={{ color: tokens.textSecondary, fontSize: 12, lineHeight: 1.5 }}>{feat}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── FAQ ──────────────────────────────────────────────────────────────────────
+
+function FAQ({ tokens }: { tokens: ReturnType<typeof useThemeTokens> }) {
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <section style={{ padding: "96px 2rem", maxWidth: 720, margin: "0 auto" }}>
+      <div style={{ textAlign: "center", marginBottom: 52 }}>
+        <h2 style={{
+          fontSize: "clamp(1.7rem,3.5vw,2.4rem)",
+          fontWeight: 800, letterSpacing: -1.5, color: tokens.textPrimary,
+        }}>
+          Frequently asked questions
+        </h2>
+      </div>
+      {FAQS.map((faq, i) => (
+        <div key={i} style={{ borderBottom: `1px solid ${tokens.border}` }}>
+          <button
+            onClick={() => setOpen(open === i ? null : i)}
+            style={{
+              width: "100%", background: "none", border: "none",
+              padding: "20px 0",
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              cursor: "pointer", textAlign: "left", gap: 16,
+            }}
+          >
+            <span style={{ color: tokens.textPrimary, fontSize: 14, fontWeight: 600 }}>{faq.q}</span>
+            <ChevronDown size={16} color={tokens.textSecondary}
+              style={{ flexShrink: 0, transform: open === i ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+            />
+          </button>
+          {open === i && (
+            <div style={{ paddingBottom: 20 }}>
+              <p style={{ color: tokens.textSecondary, fontSize: 13, lineHeight: 1.75 }}>{faq.a}</p>
+            </div>
+          )}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+// ─── FINAL CTA ────────────────────────────────────────────────────────────────
+
+function FinalCTA({ isDark, tokens }: { isDark: boolean; tokens: ReturnType<typeof useThemeTokens> }) {
+  return (
+    <section style={{
+      padding: "96px 2rem", textAlign: "center",
+      background: tokens.bgPanel,
+      borderTop: `1px solid ${tokens.border}`,
+      position: "relative", overflow: "hidden",
+    }}>
+      {/* Same orb as hero */}
+      <div style={{
+        position: "absolute", top: "50%", left: "50%",
+        transform: "translate(-50%,-50%)",
+        width: 600, height: 400, borderRadius: "50%",
+        background: isDark
+          ? "radial-gradient(circle, rgba(16,185,129,0.10) 0%, transparent 70%)"
+          : "radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%)",
+        pointerEvents: "none",
+      }} />
+
+      {/* Same grid as hero */}
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: isDark
+          ? `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+             linear-gradient(90deg,rgba(255,255,255,0.03) 1px, transparent 1px)`
+          : `linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+             linear-gradient(90deg,rgba(0,0,0,0.04) 1px, transparent 1px)`,
+        backgroundSize: "32px 32px",
+        pointerEvents: "none",
+      }} />
+
+      <div style={{ position: "relative", maxWidth: 560, margin: "0 auto" }}>
+        <h2 style={{
+          fontSize: "clamp(2rem,4vw,3rem)",
+          fontWeight: 800, letterSpacing: -2,
+          color: tokens.textPrimary, marginBottom: 16,
+        }}>
+          Ready to grow your lot?
+        </h2>
+        <p style={{ color: tokens.textSecondary, fontSize: 15, marginBottom: 38, lineHeight: 1.7 }}>
+          Join dealers who replaced Frazer, DealerCenter, and spreadsheets with a platform built for 2026.
+          Free 14-day trial. No card needed.
+        </p>
+        <Link href="/auth/register" style={{
+          background: ACCENT, color: "#fff",
+          fontWeight: 700, fontSize: 15,
+          padding: "14px 36px", borderRadius: "0.6rem",
+          textDecoration: "none",
+          display: "inline-flex", alignItems: "center", gap: 9,
+          boxShadow: `0 0 36px ${ACCENT_GLOW}`,
+          transition: "background 0.2s",
+        }}
+          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.background = ACCENT_HOV)}
+          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.background = ACCENT)}
+        >
+          Start Free Trial <ArrowRight size={16} />
+        </Link>
+        <p style={{ color: tokens.textMuted, fontSize: 12, marginTop: 18 }}>
+          No credit card · No contract · Cancel any time
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ─── FOOTER ───────────────────────────────────────────────────────────────────
+
+function Footer({ tokens }: { tokens: ReturnType<typeof useThemeTokens> }) {
+  const year = new Date().getFullYear();
+  return (
+    <footer style={{
+      padding: "56px 2rem 28px",
+      borderTop: `1px solid ${tokens.border}`,
+      background: tokens.bg,
+    }}>
+      <div style={{
+        maxWidth: 1200, margin: "0 auto",
+        display: "flex", flexWrap: "wrap", gap: 44,
+        justifyContent: "space-between", marginBottom: 44,
+      }}>
+        {/* Brand */}
+        <div style={{ maxWidth: 260 }}>
+          <div style={{ marginBottom: 12 }}>
+            <span style={{
+              fontFamily: "Inter, sans-serif",
+              fontWeight: 800, fontSize: 15,
+              letterSpacing: "0.12em", textTransform: "uppercase",
+              color: tokens.textPrimary,
+            }}>
+              Dealer<span style={{ color: ACCENT }}>seed</span>
+            </span>
+          </div>
+          <p style={{ color: tokens.textSecondary, fontSize: 12, lineHeight: 1.7 }}>
+            The modern dealer management platform built for independent and BHPH lots.
+          </p>
+        </div>
+
+        {/* Link columns */}
+        {[
+          { heading: "Product",  links: ["Features","Pricing","Compare","Changelog"] },
+          { heading: "Company",  links: ["About","Blog","Careers","Contact"]         },
+          { heading: "Legal",    links: ["Privacy Policy","Terms of Service","Cookie Policy"] },
+        ].map(col => (
+          <div key={col.heading}>
+            <h4 style={{ color: tokens.textPrimary, fontWeight: 700, fontSize: 12, marginBottom: 14, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              {col.heading}
+            </h4>
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {col.links.map(l => (
+                <a key={l} href="#"
+                  style={{ color: tokens.textSecondary, fontSize: 12, textDecoration: "none", transition: "color 0.15s" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = tokens.textPrimary)}
+                  onMouseLeave={e => (e.currentTarget.style.color = tokens.textSecondary)}
+                >
+                  {l}
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{
+        borderTop: `1px solid ${tokens.border}`, paddingTop: 22,
+        display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
+      }}>
+        <span style={{ color: tokens.textMuted, fontSize: 11 }}>© {year} DEALERSEED. All rights reserved.</span>
+        <span style={{ color: tokens.textMuted, fontSize: 11 }}>Built for the lot. Not the boardroom.</span>
+      </div>
+    </footer>
+  );
+}
+
+// ─── PAGE ROOT ────────────────────────────────────────────────────────────────
+
+export default function HomePage() {
+  const { theme, toggleTheme } = useAppStore();
+  const isDark = theme === "dark";
+  const tokens = useThemeTokens(isDark);
+
+  return (
+    <div style={{
+      background: tokens.bg,
+      color: tokens.textPrimary,
+      minHeight: "100vh",
+      fontFamily: "Inter, sans-serif",
+      transition: "background 0.3s, color 0.3s",
+    }}>
+      <Navbar isDark={isDark} toggleTheme={toggleTheme} tokens={tokens} />
+      <Hero   isDark={isDark} tokens={tokens} />
+      <StatsBar tokens={tokens} />
+      <PainPoints isDark={isDark} tokens={tokens} />
+      <Features   isDark={isDark} tokens={tokens} />
+      <CompareTable tokens={tokens} />
+      <HowItWorks   tokens={tokens} />
+      <Reviews      tokens={tokens} />
+      <Pricing      isDark={isDark} tokens={tokens} />
+      <FAQ          tokens={tokens} />
+      <FinalCTA     isDark={isDark} tokens={tokens} />
+      <Footer       tokens={tokens} />
     </div>
   );
 }

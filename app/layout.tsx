@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: { default: "DEHY — Deal Engine for Hydrocarbon Yield", template: "%s | DEHY" },
-  description: "Institutional-grade CRM for energy brokers, commodity traders, retail energy suppliers, and PPA originators.",
+  title: { default: "Dealerseed — The CRM for Car Dealers", template: "%s | Dealerseed" },
+  description: "Modern CRM for independent car dealers and auto sales teams.",
   icons: { icon: "/favicon.ico" },
 };
 

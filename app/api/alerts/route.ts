@@ -1,45 +1,59 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireOrg, isAuthError, DEMO_ORG_ID, DEMO_USER_ID } from "@/lib/api-auth";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { auth }         from "@/lib/auth";
+import { prisma }       from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
-  const ctx    = await requireOrg();
-  const orgId  = isAuthError(ctx) ? DEMO_ORG_ID : ctx.organizationId;
-  const userId = isAuthError(ctx) ? DEMO_USER_ID : ctx.userId;
+export async function GET(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { searchParams } = new URL(req.url);
-  const pageSize   = parseInt(searchParams.get("pageSize") ?? "20");
+  const { searchParams } = new URL(request.url);
   const unreadOnly = searchParams.get("unreadOnly") === "true";
+  const pageSize   = parseInt(searchParams.get("pageSize") ?? "20");
 
-  const where = {
-    organizationId: orgId,
-    userId,
-    ...(unreadOnly ? { isRead: false } : {}),
-  };
-
-  const [alerts, total] = await Promise.all([
-    prisma.alert.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: pageSize,
-    }),
-    prisma.alert.count({ where }),
-  ]);
-
-  return NextResponse.json({ data: alerts, meta: { total, page: 1, pageSize, totalPages: 1 } });
-}
-
-export async function PATCH(req: NextRequest) {
-  const ctx   = await requireOrg();
-  const orgId = isAuthError(ctx) ? DEMO_ORG_ID : ctx.organizationId;
-
-  const { ids } = await req.json();
-  if (!Array.isArray(ids)) return NextResponse.json({ error: "Invalid" }, { status: 400 });
-
-  await prisma.alert.updateMany({
-    where: { id: { in: ids }, organizationId: orgId },
-    data:  { isRead: true, readAt: new Date() },
+  const alerts = await prisma.alert.findMany({
+    where: {
+      userId:         session.user.id,
+      organizationId: session.user.organizationId,
+      ...(unreadOnly && { isRead: false }),
+    },
+    orderBy: { createdAt: "desc" },
+    take: pageSize,
   });
 
-  return NextResponse.json({ data: { updated: ids.length } });
+  const total = await prisma.alert.count({
+    where: {
+      userId:         session.user.id,
+      organizationId: session.user.organizationId,
+      isRead: false,
+    },
+  });
+
+  return NextResponse.json({ alerts, total });
+}
+
+export async function PATCH(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { alertId, markAllRead } = await request.json();
+
+  if (markAllRead) {
+    await prisma.alert.updateMany({
+      where: { userId: session.user.id, isRead: false },
+      data:  { isRead: true, readAt: new Date() },
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  if (alertId) {
+    await prisma.alert.update({
+      where: { id: alertId },
+      data:  { isRead: true, readAt: new Date() },
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
 }

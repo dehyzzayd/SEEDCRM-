@@ -6,7 +6,7 @@ import { signIn } from "next-auth/react";
 import { Eye, EyeOff, Loader2, CheckCircle2, Building2, User, Mail, Lock, Zap } from "lucide-react";
 import Link from "next/link";
 
-function DehydLogo({ color = "currentColor", height = 32 }: { color?: string; height?: number }) {
+function DealerseedLogo({ color = "currentColor", height = 32 }: { color?: string; height?: number }) {
   const width = Math.round(height * 4);
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" height={height} width={width} fill={color} aria-label="Dehy">
@@ -103,7 +103,7 @@ function RegisterForm() {
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <DehydLogo color="var(--text-primary)" height={34} />
+          <DealerseedLogo color="var(--text-primary)" height={34} />
         </div>
 
         <div className="card p-6">

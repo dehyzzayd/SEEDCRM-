@@ -1,18 +1,8 @@
-import { PageHeader } from "@/components/shared/PageHeader";
-import { DealForm } from "@/components/deals/DealForm";
-
 export default function NewDealPage() {
   return (
-    <div>
-      <PageHeader
-        title="New Deal"
-        breadcrumbs={[{ label: "Deals", href: "/deals" }, { label: "New Deal" }]}
-      />
-      <div className="max-w-2xl mx-auto">
-        <div className="card mt-6 overflow-hidden">
-          <DealForm />
-        </div>
-      </div>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold text-text-primary mb-2">New Deal</h1>
+      <p className="text-text-secondary text-sm">Deal creation coming soon.</p>
     </div>
   );
 }

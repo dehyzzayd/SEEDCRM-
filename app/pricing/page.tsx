@@ -63,10 +63,10 @@ function DashboardMockup() {
     { label: "Contracts Due",   value: "6",      sub: "expiring 30 days",color: "#EF4444" },
   ];
   const deals = [
-    { id: "DEHY-2026-0047", cp: "BP Energy",        stage: "FIRM BID",     val: "$12.4M",  dir: "SELL", color: "#3B82F6" },
-    { id: "DEHY-2026-0046", cp: "Shell Trading",    stage: "CREDIT REVIEW",val: "$8.1M",   dir: "BUY",  color: "#F59E0B" },
-    { id: "DEHY-2026-0045", cp: "Calpine Corp",     stage: "LEGAL REVIEW", val: "$22.0M",  dir: "SELL", color: "#8B5CF6" },
-    { id: "DEHY-2026-0044", cp: "Constellation",    stage: "EXECUTED",     val: "$5.7M",   dir: "BUY",  color: "#00D4AA" },
+    { id: "Dealerseed-2026-0047", cp: "BP Energy",        stage: "FIRM BID",     val: "$12.4M",  dir: "SELL", color: "#3B82F6" },
+    { id: "Dealerseed-2026-0046", cp: "Shell Trading",    stage: "CREDIT REVIEW",val: "$8.1M",   dir: "BUY",  color: "#F59E0B" },
+    { id: "Dealerseed-2026-0045", cp: "Calpine Corp",     stage: "LEGAL REVIEW", val: "$22.0M",  dir: "SELL", color: "#8B5CF6" },
+    { id: "Dealerseed-2026-0044", cp: "Constellation",    stage: "EXECUTED",     val: "$5.7M",   dir: "BUY",  color: "#00D4AA" },
   ];
   return (
     <div style={{ background: "#0A0A0A", borderRadius: 12, border: "1px solid #222", overflow: "hidden", fontFamily: "Inter, sans-serif" }}>
@@ -76,7 +76,7 @@ function DashboardMockup() {
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#EF4444" }} />
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B" }} />
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} />
-          <span style={{ marginLeft: 8, fontSize: 11, color: "#555", fontFamily: "monospace" }}>DEHY — Dashboard</span>
+          <span style={{ marginLeft: 8, fontSize: 11, color: "#555", fontFamily: "monospace" }}>Dealerseed — Dashboard</span>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           {["Dashboard","Deals","Counterparties","Market"].map(t => (
@@ -130,7 +130,7 @@ function KanbanMockup() {
         <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#EF4444" }} />
         <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B" }} />
         <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} />
-        <span style={{ marginLeft: 8, fontSize: 11, color: "#555", fontFamily: "monospace" }}>DEHY — Deal Pipeline (Kanban)</span>
+        <span style={{ marginLeft: 8, fontSize: 11, color: "#555", fontFamily: "monospace" }}>Dealerseed — Deal Pipeline (Kanban)</span>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, padding: 16 }}>
         {cols.map(col => (
@@ -173,7 +173,7 @@ function MarketMockup() {
         <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#EF4444" }} />
         <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B" }} />
         <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} />
-        <span style={{ marginLeft: 8, fontSize: 11, color: "#555", fontFamily: "monospace" }}>DEHY — Market Data</span>
+        <span style={{ marginLeft: 8, fontSize: 11, color: "#555", fontFamily: "monospace" }}>Dealerseed — Market Data</span>
       </div>
       <div style={{ padding: 16 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
@@ -217,7 +217,7 @@ function AlertsMockup() {
     { type: "CREDIT",   msg: "Shell Trading at 87% credit utilisation",  time: "2m ago",  color: "#EF4444", dot: "🔴" },
     { type: "CONTRACT", msg: "ISDA Master expires in 28 days — Calpine", time: "1h ago",  color: "#F59E0B", dot: "🟡" },
     { type: "PRICE",    msg: "Henry Hub up 8.2% — check open positions", time: "4h ago",  color: "#3B82F6", dot: "🔵" },
-    { type: "DEAL",     msg: "DEHY-2026-0044 moved to EXECUTED stage",   time: "6h ago",  color: "#00D4AA", dot: "🟢" },
+    { type: "DEAL",     msg: "Dealerseed-2026-0044 moved to EXECUTED stage",   time: "6h ago",  color: "#00D4AA", dot: "🟢" },
   ];
   return (
     <div style={{ background: "#0A0A0A", borderRadius: 12, border: "1px solid #222", overflow: "hidden", fontFamily: "Inter, sans-serif" }}>
@@ -226,7 +226,7 @@ function AlertsMockup() {
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#EF4444" }} />
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#F59E0B" }} />
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981" }} />
-          <span style={{ marginLeft: 8, fontSize: 11, color: "#555", fontFamily: "monospace" }}>DEHY — Alerts</span>
+          <span style={{ marginLeft: 8, fontSize: 11, color: "#555", fontFamily: "monospace" }}>Dealerseed — Alerts</span>
         </div>
         <span style={{ fontSize: 9, background: "#EF4444", color: "#FFF", padding: "1px 6px", borderRadius: 10, fontWeight: 700 }}>3 urgent</span>
       </div>
@@ -276,7 +276,7 @@ export default function PricingPage() {
           <span style={{ color: "#00D4AA" }}>in spreadsheets.</span>
         </h1>
         <p style={{ fontSize: 18, color: "#888", maxWidth: 560, margin: "0 auto 36px", lineHeight: 1.7 }}>
-          DEHY is the trading-desk CRM built for oil, gas, and power. Pipeline, credit risk,
+          Dealerseed is the trading-desk CRM built for oil, gas, and power. Pipeline, credit risk,
           market data, and contracts — all in one place, loading in under 100ms.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
@@ -486,7 +486,7 @@ export default function PricingPage() {
             Ready to run a cleaner desk?
           </h2>
           <p style={{ fontSize: 15, color: "#666", marginBottom: 32, lineHeight: 1.7 }}>
-            Join trading firms that use DEHY to close deals faster, manage credit risk in real time,
+            Join trading firms that use Dealerseed to close deals faster, manage credit risk in real time,
             and stop digging through spreadsheets at month-end.
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
@@ -504,7 +504,7 @@ export default function PricingPage() {
       <footer style={{ borderTop: "1px solid #111", padding: "24px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <DehydLogo color="#333333" height={20} />
         <p style={{ fontSize: 11, color: "#333" }}>
-          © 2026 DEHY — Deal Engine for Hydrocarbon Yield
+          © 2026 Dealerseed — Deal Engine for Hydrocarbon Yield
         </p>
         <div style={{ display: "flex", gap: 20 }}>
           {["Terms","Privacy","Status"].map(l => (
