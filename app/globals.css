@@ -10,33 +10,34 @@
   ──────────────────────────────────────────────────────────────── */
   :root,
   [data-theme="dark"] {
-    --bg-base:     #0D1117;
-    --bg-panel:    #161B22;
-    --bg-card:     #1C2333;
-    --bg-hover:    #21293A;
+    --bg-base:     #000000;
+    --bg-panel:    #0D0D0D;
+    --bg-card:     #111111;
+    --bg-hover:    #1A1A1A;
 
     --text-primary:   #FFFFFF;
-    --text-secondary: #8B98B0;
-    --text-tertiary:  #546078;
+    --text-secondary: #A0A8B4;
+    --text-tertiary:  #606878;
     --text-disabled:  #404850;
 
-    --border-default: #2A3347;
-    --border-hover:   #354057;
+    --border-default: #222222;
+    --border-hover:   #333333;
     --border-focus:   #00D4AA;
 
     --accent: #00D4AA;
 
     /* Sidebar — slightly lifted from pure black so it reads as a panel */
-    --sidebar-bg:     #111827;
-    --sidebar-border: #1F2D40;
-    --bg-topbar: #161B22;
+    --sidebar-bg:     #0A0A0A;
+    --sidebar-border: #1E1E1E;
+    --bg-topbar:     #0D0D0D;
 
-    --scrollbar-track: #0D1117;
-    --scrollbar-thumb: #2A3347;
-    --scrollbar-thumb-hover: #354057;
 
-    --shimmer-from: #1C2333;
-    --shimmer-mid:  #21293A;
+    --scrollbar-track: #000000;
+    --scrollbar-thumb: #222222;
+    --scrollbar-thumb-hover: #333333;
+
+    --shimmer-from: #111111;
+    --shimmer-mid:  #1A1A1A;
   }
 
   /* ── LIGHT THEME ────────────────────────────────────────────────
@@ -62,7 +63,8 @@
     /* Sidebar specific — pure white */
     --sidebar-bg:     #FFFFFF;
     --sidebar-border: #E2E8F0;
-    --bg-topbar: #FFFFFF;
+    --bg-topbar:     #FFFFFF;
+
 
     --scrollbar-track: #F4F7FA;
     --scrollbar-thumb: #C9D4E0;

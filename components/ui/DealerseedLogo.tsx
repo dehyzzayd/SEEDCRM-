@@ -69,7 +69,7 @@ export function DealerseedLogo({ variant = "full", height = 32, className = "" }
         letterSpacing="-0.5"
         fill="#10B981"
       >
-        dealer
+        Dealer
       </text>
       {/* "seed" inherits text color (white in dark, dark in light) */}
       <text
